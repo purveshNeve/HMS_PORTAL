@@ -1,4 +1,4 @@
-import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
+// import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
 import {
   Card,
   CardContent,
@@ -42,13 +42,13 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs
+      {/* <Breadcrumbs
         items={[
           { label: "Home", href: "/" },
-          { label: "Admin", href: "/admin/dashboard" },
-          { label: "Dashboard" },
+          // { label: "Admin", href: "/admin/dashboard" },
+          // { label: "Dashboard" },
         ]}
-      />
+      /> */}
       <div>
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <p className="text-foreground/60">

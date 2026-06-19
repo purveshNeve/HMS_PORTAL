@@ -15,11 +15,9 @@ export interface NavItem {
 const NAV_ITEMS_BY_ROLE: Record<UserRole, NavItem[]> = {
   admin: [
     { label: "Dashboard", href: "/admin/dashboard" },
-    { label: "Recruitment", href: "/admin/recruitment" },
-    { label: "Payroll", href: "/admin/payroll" },
-    { label: "Compliance", href: "/admin/compliance" },
-    { label: "Performance", href: "/admin/performance" },
-    { label: "Culture", href: "/admin/culture" },
+    { label: "Recruitments", href: "/admin/Recruitments" },
+    { label: "Employees", href: "/admin/Employees" },
+    { label: "Cultural", href: "/admin/Cultural" },
   ],
   manager: [
     { label: "Dashboard", href: "/manager/dashboard" },
@@ -75,7 +73,9 @@ export function Sidebar({
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-4">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/" && pathname.startsWith(`${item.href}/`));
 
           return (
             <Link

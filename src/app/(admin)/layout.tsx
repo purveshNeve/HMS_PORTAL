@@ -5,11 +5,9 @@ import { Sidebar, type NavItem } from "@/components/navigation/Sidebar";
 
 const adminNav: NavItem[] = [
   { label: "Dashboard", href: "/admin/dashboard" },
-  { label: "Recruitment", href: "/admin/recruitment" },
-  { label: "Payroll", href: "/admin/payroll" },
-  { label: "Compliance", href: "/admin/compliance" },
-  { label: "Performance", href: "/admin/performance" },
-  { label: "Culture", href: "/admin/culture" },
+  { label: "Recruitment", href: "/admin/Recruitments" },
+  { label: "Employee Details", href: "/admin/Employees" },
+  { label: "Career Development", href: "/admin/Cultural" },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
