@@ -1,7 +1,7 @@
+"use client";
 import Link from "next/link";
-
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-
 export default function HomePage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-24">
@@ -18,7 +18,7 @@ export default function HomePage() {
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Link href="/login">
-            <Button>Sign in</Button>
+            <Button>Sign In</Button>
           </Link>
           <Link href="/admin/dashboard">
             <Button variant="secondary">Admin Portal</Button>

@@ -1,32 +1,31 @@
-/**
- * Database client initialization.
- * Replace with Prisma, Drizzle, or your preferred ORM client.
- *
- * @example Prisma
- * import { PrismaClient } from "@prisma/client";
- * const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
- * export const db = globalForPrisma.prisma ?? new PrismaClient();
- */
+import mongoose from "mongoose";
 
-export interface DatabaseClient {
-  query<T>(sql: string, params?: unknown[]): Promise<T[]>;
-  disconnect(): Promise<void>;
-}
+const MONGO_URL = process.env.MONGO_URL!;
 
-class PlaceholderDatabaseClient implements DatabaseClient {
-  async query<T>(_sql: string, _params?: unknown[]): Promise<T[]> {
-    return [];
+let cached: {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+} = (global as any).mongoose || {
+  conn: null,
+  promise: null,
+};
+
+export async function dbConnect() {
+  if (cached.conn) {
+    return cached.conn;
   }
-
-  async disconnect(): Promise<void> {
-    return Promise.resolve();
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGO_URL);
   }
+  cached.conn = await cached.promise;
+  (global as any).mongoose = cached;
+  return cached.conn;
 }
 
-const globalForDb = globalThis as unknown as { db: DatabaseClient };
 
-export const db = globalForDb.db ?? new PlaceholderDatabaseClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.db = db;
-}
+
+
+
+
+export const test = "hello";

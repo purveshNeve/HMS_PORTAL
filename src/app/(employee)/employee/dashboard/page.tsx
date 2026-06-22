@@ -1,9 +1,4 @@
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
-import { PayslipCard } from "@/features/compensation-payroll/components/PayslipCard";
-import { PtoBalanceCard } from "@/features/compensation-payroll/components/PtoBalanceCard";
-import { GoalTracker } from "@/features/performance-development/components/GoalTracker";
-import { ShoutoutBoard } from "@/features/employee-relations/components/ShoutoutBoard";
-
 export default function EmployeeDashboardPage() {
   const mockPayslip = {
     id: "ps1",
@@ -60,11 +55,7 @@ export default function EmployeeDashboardPage() {
         <p className="text-foreground/60">Your personal HR self-service hub</p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <PayslipCard payslip={mockPayslip} />
-        <PtoBalanceCard balance={mockPto} />
-        <GoalTracker goals={mockGoals} />
       </div>
-      <ShoutoutBoard shoutouts={mockShoutouts} />
     </div>
   );
 }

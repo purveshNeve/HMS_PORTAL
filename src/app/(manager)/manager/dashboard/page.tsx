@@ -6,9 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { GoalTracker } from "@/features/performance-development/components/GoalTracker";
-import { OnboardingChecklist } from "@/features/talent-acquisition/components/OnboardingChecklist";
-
 export default function ManagerDashboardPage() {
   const mockGoals = [
     {
@@ -66,8 +63,6 @@ export default function ManagerDashboardPage() {
         ))}
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
-        <GoalTracker goals={mockGoals} />
-        <OnboardingChecklist tasks={mockTasks} />
       </div>
       <Card>
         <CardHeader>

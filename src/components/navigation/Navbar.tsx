@@ -1,21 +1,16 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-
 import type { NavItem } from "@/components/navigation/Sidebar";
-
 export interface NavbarProps {
   title?: string;
   items?: NavItem[];
   showAuthActions?: boolean;
   className?: string;
 }
-
 export function Navbar({
   title = "HRMS",
   items,
@@ -24,7 +19,6 @@ export function Navbar({
 }: NavbarProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
-
   return (
     <header
       className={cn(
@@ -39,13 +33,11 @@ export function Navbar({
         >
           {title}
         </Link>
-
         {items && items.length > 0 && (
           <nav className="flex items-center gap-1 overflow-x-auto">
             {items.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
-
               return (
                 <Link
                   key={item.href}
@@ -64,7 +56,6 @@ export function Navbar({
           </nav>
         )}
       </div>
-
       {showAuthActions && (
         <div className="flex shrink-0 items-center gap-3">
           {isLoading ? (
@@ -72,7 +63,7 @@ export function Navbar({
           ) : isAuthenticated && user ? (
             <>
               <span className="hidden text-sm text-zinc-600 dark:text-zinc-400 sm:inline">
-                {user.name} · {user.role}
+                {user.name} · {user.userId}
               </span>
               <Link href="/login">
                 <Button variant="secondary" size="sm">
