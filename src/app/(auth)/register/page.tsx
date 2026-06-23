@@ -1,16 +1,16 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userId, setUserId] = useState("");
@@ -18,49 +18,70 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    // Check if redirected from registration page
-    const registered = searchParams.get("registered");
-    if (registered === "true") {
-      toast.success("Registration successful! Please sign in.");
-    }
-  }, [searchParams]);
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        userId,
-        role,
-        redirect: false,
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          userId,
+          role,
+        }),
       });
 
-      if (result?.error) {
-        toast.error(result.error || "Invalid credentials");
-        setError(result.error || "Invalid credentials");
-        setIsLoading(false);
+      const data = await response.json();
+
+      if (response.status === 400) {
+        toast.error(data.message || "User already exists");
+        setError(data.message || "User already exists");
+        setTimeout(() => {
+          router.push("/login");
+        }, 1500);
         return;
       }
 
-      if (result?.ok) {
-        toast.success("Login successful!");
-        setTimeout(() => {
-          if (role === "MANAGER") {
-            router.push("/manager/dashboard");
+      if (response.status === 201) {
+        toast.success("Registration successful! Logging you in...");
+        
+        // Auto-login after successful registration
+        setTimeout(async () => {
+          const signInResult = await signIn("credentials", {
+            email,
+            password,
+            userId,
+            role,
+            redirect: false,
+          });
+
+          if (signInResult?.ok) {
+            if (role === "MANAGER") {
+              router.push("/manager/dashboard");
+            } else {
+              router.push("/employee/dashboard");
+            }
           } else {
-            router.push("/employee/dashboard");
+            toast.error("Login failed, please sign in manually");
+            router.push("/login");
           }
         }, 1000);
+      } else {
+        toast.error(data.message || "Registration failed");
+        setError(data.message || "Registration failed");
       }
     } catch (error) {
-      console.error("Login Error:", error);
-      toast.error("An error occurred during login");
-      setError("An error occurred during login");
+      console.error("Registration Error:", error);
+      toast.error("An error occurred during registration");
+      setError("An error occurred during registration");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -69,8 +90,8 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in to HRMS</CardTitle>
-          <CardDescription>Enter your credentials to access the portal</CardDescription>
+          <CardTitle>Create Account</CardTitle>
+          <CardDescription>Register a new account to access HRMS</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
@@ -94,12 +115,12 @@ export default function LoginPage() {
             </div>
 
             <Input
-              label={role === "EMPLOYEE" ? "Employee ID" : "Manager ID"}
+              label="Name"
               type="text"
-              name="userId"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder={role === "EMPLOYEE" ? "Enter Employee ID" : "Enter Manager ID"}
+              name="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your full name"
               required
             />
 
@@ -114,25 +135,35 @@ export default function LoginPage() {
             />
 
             <Input
+              label={role === "EMPLOYEE" ? "Employee ID" : "Manager ID"}
+              type="text"
+              name="userId"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              placeholder={role === "EMPLOYEE" ? "Enter Employee ID" : "Enter Manager ID"}
+              required
+            />
+
+            <Input
               label="Password"
               type="password"
               name="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Enter a strong password"
               required
             />
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? "Creating account..." : "Register"}
             </Button>
 
             <div className="text-center text-sm">
-              Don't have an account?{" "}
-              <Link href="/register" className="text-blue-600 hover:underline dark:text-blue-400">
-                Create one
+              Already have an account?{" "}
+              <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
+                Sign in
               </Link>
             </div>
           </form>

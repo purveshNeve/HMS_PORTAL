@@ -15,6 +15,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden">
       <Sidebar items={adminNav} title="Admin Portal" />
       <div className="flex flex-1 flex-col overflow-hidden">
+        <Navbar title="Admin Portal" />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>

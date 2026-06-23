@@ -1,16 +1,19 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "@/components/navigation/Sidebar";
+
 export interface NavbarProps {
   title?: string;
   items?: NavItem[];
   showAuthActions?: boolean;
   className?: string;
 }
+
 export function Navbar({
   title = "HRMS",
   items,
@@ -19,6 +22,10 @@ export function Navbar({
 }: NavbarProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
+
+  const handleSignOut = async () => {
+    await signOut({ redirect: true, callbackUrl: "/" });
+  };
   return (
     <header
       className={cn(
@@ -62,14 +69,17 @@ export function Navbar({
             <span className="text-sm text-zinc-500">Loading...</span>
           ) : isAuthenticated && user ? (
             <>
-              <span className="hidden text-sm text-zinc-600 dark:text-zinc-400 sm:inline">
-                {user.name} · {user.userId}
-              </span>
-              <Link href="/login">
-                <Button variant="secondary" size="sm">
-                  Sign out
-                </Button>
-              </Link>
+              <div className="text-right text-sm">
+                <div className="font-medium text-zinc-900 dark:text-zinc-50">{user.name}</div>
+                <div className="text-xs text-zinc-600 dark:text-zinc-400">{user.userId}</div>
+              </div>
+              <Button 
+                variant="secondary" 
+                size="sm"
+                onClick={handleSignOut}
+              >
+                Sign out
+              </Button>
             </>
           ) : (
             <Link href="/login">

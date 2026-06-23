@@ -5,10 +5,11 @@ import { Sidebar, type NavItem } from "@/components/navigation/Sidebar";
 
 const employeeNav: NavItem[] = [
   { label: "Dashboard", href: "/employee/dashboard" },
-  { label: "Pay & Benefits", href: "/employee/payroll" },
-  { label: "Time Off", href: "/employee/pto" },
-  { label: "Goals", href: "/employee/goals" },
-  { label: "Feedback", href: "/employee/feedback" },
+  { label: "Goals", href: "/employee/Goals" },
+  { label: "Pay & Benefits", href: "/employee/PayAndBenefit" },
+  {label: "Profile" , href: "/employee/Profile"},
+  { label: "Time Off", href: "/employee/timeOff" },
+  { label: "Feedback", href: "/employee/feedback" }
 ];
 
 export default function EmployeeLayout({ children }: { children: ReactNode }) {

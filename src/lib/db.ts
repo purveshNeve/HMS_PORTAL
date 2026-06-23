@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-
-const MONGO_URL = process.env.MONGO_URL!;
-
 let cached: {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -9,8 +6,12 @@ let cached: {
   conn: null,
   promise: null,
 };
-
 export async function dbConnect() {
+  const MONGO_URL = process.env.MONGODB_URI!;
+  console.log("MONGO_URL =", MONGO_URL);
+  if (!MONGO_URL) {
+    throw new Error("MONGODB_URI is not defined");
+  }
   if (cached.conn) {
     return cached.conn;
   }
@@ -21,11 +22,3 @@ export async function dbConnect() {
   (global as any).mongoose = cached;
   return cached.conn;
 }
-
-
-
-
-
-
-
-export const test = "hello";

@@ -3,5 +3,6 @@ export const config = {
     matcher: [
         "/employee/:path*",
         "/manager/:path*",
+        "/admin/:path*",
     ],
 };

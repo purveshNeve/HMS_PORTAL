@@ -41,28 +41,32 @@ export const authConfig: NextAuthConfig = {
         role: { label: "Role", type: "text" },
       },
       async authorize(credentials){
-      await dbConnect();
-      const user = await User.findOne({
-        userId: credentials?.userId,
-        role: credentials?.role,
-      });
-      if (!user) {
-        console.log("User not found");
+      try {
+        await dbConnect();
+        const user = await User.findOne({
+          userId: credentials?.userId,
+          role: credentials?.role,
+        });
+        if (!user) {
+          throw new Error("User not found");
+        }
+        const validPassword = await bcrypt.compare(
+          credentials!.password as string,
+          user.password
+        );
+        if (!validPassword) {
+          throw new Error("Invalid password");
+        }
+        return {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          userId: user.userId,
+        };
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "Authentication failed");
       }
-      const validPassword = await bcrypt.compare(
-        credentials!.password as string,
-        user.password
-      );
-      if (!validPassword) {
-        return null;
-      }
-      return {
-        id: user._id.toString(),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        userId: user.userId,
-      };
     },
     }),
   ],
