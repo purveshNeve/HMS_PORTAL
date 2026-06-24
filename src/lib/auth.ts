@@ -3,7 +3,8 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import User from "@/models/User";
-import {dbConnect}  from "./db"; 
+import { dbConnect } from "./db";
+import { sendIncorrectPasswordAlertEmail } from "@/lib/mail";
 import type { UserRole } from "@/types";
 
 declare module "next-auth" {
@@ -55,6 +56,11 @@ export const authConfig: NextAuthConfig = {
           user.password
         );
         if (!validPassword) {
+          try {
+            await sendIncorrectPasswordAlertEmail(user.email, user.name);
+          } catch (emailError) {
+            console.error("Failed to send incorrect password alert:", emailError);
+          }
           throw new Error("Invalid password");
         }
         return {

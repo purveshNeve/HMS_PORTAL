@@ -25,7 +25,8 @@ const UserSchema = new mongoose.Schema(
       enum: ["EMPLOYEE", "MANAGER", "ADMIN"],
       required: true,
     },
-
+    resetPasswordToken: String,
+    resetPasswordExpires: Date, 
     // Personal Information
     phone: {
       type: String,
@@ -37,12 +38,12 @@ const UserSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ["Male", "Female", "Other"],
+      enum: ["", "Male", "Female", "Other"],
       default: "",
     },
     maritalStatus: {
       type: String,
-      enum: ["Single", "Married", "Divorced", "Widowed"],
+      enum: ["", "Single", "Married", "Divorced", "Widowed"],
       default: "",
     },
     address: {

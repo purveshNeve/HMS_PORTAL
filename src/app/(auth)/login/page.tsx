@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -129,11 +130,16 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
 
-            <div className="text-center text-sm">
-              Don't have an account?{" "}
-              <Link href="/register" className="text-blue-600 hover:underline dark:text-blue-400">
-                Create one
+            <div className="flex flex-col gap-2 text-center text-sm">
+              <Link href="/forgetPasswordPage" className="text-blue-600 hover:underline dark:text-blue-400">
+                Forgot password?
               </Link>
+              <span>
+                Don't have an account?{" "}
+                <Link href="/register" className="text-blue-600 hover:underline dark:text-blue-400">
+                  Create one
+                </Link>
+              </span>
             </div>
           </form>
         </CardContent>
