@@ -7,6 +7,7 @@ export const employeeData = {
   employmentType: "Full-Time",
   joiningDate: "2021-03-15",
 };
+
 export const compensationSummary = {
   currentMonthlySalary: 125000,
   annualCTC: 1800000,

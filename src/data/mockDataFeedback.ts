@@ -1,0 +1,543 @@
+import {
+  ActivityItem,
+  DevelopmentSkill,
+  ModuleTab,
+  NotificationItem,
+  Recommendation,
+  RecognitionItem,
+  ReceivedFeedback,
+  ReviewCycle,
+  SentFeedback,
+  SummaryMetric,
+  SurveyItem,
+} from "@/types/feedback";
+
+export const moduleTabs: ModuleTab[] = [
+  { key: "overview", label: "Overview" },
+  { key: "give-feedback", label: "Give Feedback" },
+  { key: "received", label: "Received", badge: 3 },
+  { key: "sent", label: "Sent" },
+  { key: "recognition", label: "Recognition", badge: 2 },
+  { key: "360-reviews", label: "360 Reviews", badge: 4 },
+  { key: "surveys", label: "Surveys", badge: 1 },
+  { key: "analytics", label: "Analytics" },
+  { key: "development", label: "Development" },
+];
+
+export const summaryMetrics: SummaryMetric[] = [
+  {
+    id: "submitted",
+    label: "Feedback Submitted",
+    value: "18",
+    delta: "+4",
+    deltaDirection: "up",
+    helpText: "Last 90 days",
+  },
+  {
+    id: "received",
+    label: "Feedback Received",
+    value: "27",
+    delta: "+9",
+    deltaDirection: "up",
+    helpText: "Last 90 days",
+  },
+  {
+    id: "pending",
+    label: "Pending Reviews",
+    value: "3",
+    delta: "Due soon",
+    deltaDirection: "flat",
+    helpText: "Across active cycles",
+  },
+  {
+    id: "recognition",
+    label: "Recognition Received",
+    value: "6",
+    delta: "+2",
+    deltaDirection: "up",
+    helpText: "This quarter",
+  },
+  {
+    id: "avg-score",
+    label: "Average Feedback Score",
+    value: "4.4",
+    delta: "+0.2",
+    deltaDirection: "up",
+    helpText: "Out of 5.0",
+  },
+  {
+    id: "engagement",
+    label: "Engagement Score",
+    value: "82%",
+    delta: "-1%",
+    deltaDirection: "down",
+    helpText: "Org percentile: 74th",
+  },
+];
+
+export const activityFeed: ActivityItem[] = [
+  {
+    id: "a1",
+    type: "feedback_received",
+    actor: "Priya Nair",
+    description: "Shared feedback on the Q2 platform migration project.",
+    timestamp: "2 hours ago",
+  },
+  {
+    id: "a2",
+    type: "recognition",
+    actor: "Daniel Cho",
+    description: "Awarded the Team Player badge for cross-team support.",
+    timestamp: "Yesterday, 4:12 PM",
+  },
+  {
+    id: "a3",
+    type: "review",
+    actor: "Sandra Wells",
+    description: "Submitted your Manager Review for the H1 2026 cycle.",
+    timestamp: "2 days ago",
+  },
+  {
+    id: "a4",
+    type: "survey",
+    actor: "People Operations",
+    description: "Published the Engagement Survey for all employees.",
+    timestamp: "3 days ago",
+  },
+  {
+    id: "a5",
+    type: "feedback_sent",
+    actor: "You",
+    description: "Sent feedback to Arjun Mehta regarding the API redesign.",
+    timestamp: "5 days ago",
+  },
+];
+
+export const reviewDeadlines = [
+  { id: "d1", title: "Self Review — H1 2026 Cycle", dueDate: "Jul 3, 2026", status: "In Progress" as const },
+  { id: "d2", title: "Peer Review — Arjun Mehta", dueDate: "Jul 8, 2026", status: "Not Started" as const },
+  { id: "d3", title: "Manager Review — Direct Reports (2)", dueDate: "Jul 12, 2026", status: "Not Started" as const },
+];
+
+export const managerComments = [
+  {
+    id: "m1",
+    manager: "Sandra Wells",
+    role: "Engineering Manager",
+    comment:
+      "Consistently strong delivery this quarter, particularly on the migration workstream. Keep building on stakeholder communication ahead of the H2 planning cycle.",
+    date: "Jun 18, 2026",
+  },
+];
+
+export const recentRecognitions: RecognitionItem[] = [
+  {
+    id: "r1",
+    type: "Badge",
+    title: "Team Player",
+    description: "Recognized for supporting the billing squad during their on-call rotation.",
+    from: "Daniel Cho",
+    date: "Jun 23, 2026",
+    icon: "Users",
+  },
+  {
+    id: "r2",
+    type: "Kudos",
+    title: "Outstanding Contribution",
+    description: "Delivered the Q2 platform migration two weeks ahead of schedule.",
+    from: "Priya Nair",
+    date: "Jun 15, 2026",
+    icon: "Award",
+  },
+];
+
+export const receivedFeedback: ReceivedFeedback[] = [
+  {
+    id: "rf1",
+    sender: "Priya Nair",
+    senderRole: "Senior Product Manager",
+    senderInitials: "PN",
+    date: "Jun 23, 2026",
+    category: "Project Feedback",
+    rating: 5,
+    visibility: "Manager Only",
+    status: "Unread",
+    subject: "Q2 platform migration",
+    excerpt: "Excellent ownership of the migration timeline and stakeholder updates throughout.",
+  },
+  {
+    id: "rf2",
+    sender: "Daniel Cho",
+    senderRole: "Staff Engineer",
+    senderInitials: "DC",
+    date: "Jun 22, 2026",
+    category: "Collaboration",
+    rating: 4,
+    visibility: "Public",
+    status: "Unread",
+    subject: "Cross-team support on billing on-call",
+    excerpt: "Jumped in quickly to help the billing squad debug a production incident.",
+  },
+  {
+    id: "rf3",
+    sender: "Anonymous",
+    senderRole: "Peer",
+    senderInitials: "AN",
+    date: "Jun 19, 2026",
+    category: "Improvement Suggestion",
+    rating: 3,
+    visibility: "Anonymous",
+    status: "Unread",
+    subject: "Code review turnaround time",
+    excerpt: "Reviews are thorough but sometimes take a few days; faster turnaround would help velocity.",
+  },
+  {
+    id: "rf4",
+    sender: "Sandra Wells",
+    senderRole: "Engineering Manager",
+    senderInitials: "SW",
+    date: "Jun 18, 2026",
+    category: "Leadership",
+    rating: 5,
+    visibility: "Manager Only",
+    status: "Read",
+    subject: "H1 performance check-in",
+    excerpt: "Strong technical leadership on the migration. Continue developing delegation skills.",
+  },
+  {
+    id: "rf5",
+    sender: "Arjun Mehta",
+    senderRole: "Backend Engineer",
+    senderInitials: "AM",
+    date: "Jun 10, 2026",
+    category: "Technical Skills",
+    rating: 4,
+    visibility: "Public",
+    status: "Read",
+    subject: "API redesign review",
+    excerpt: "Clean design doc with good consideration for backward compatibility.",
+  },
+  {
+    id: "rf6",
+    sender: "Lena Brandt",
+    senderRole: "UX Researcher",
+    senderInitials: "LB",
+    date: "May 29, 2026",
+    category: "Communication",
+    rating: 4,
+    visibility: "Public",
+    status: "Archived",
+    subject: "Design sync facilitation",
+    excerpt: "Kept the design sync focused and made sure every team had a chance to weigh in.",
+  },
+];
+
+export const sentFeedback: SentFeedback[] = [
+  {
+    id: "sf1",
+    recipient: "Arjun Mehta",
+    recipientRole: "Backend Engineer",
+    date: "Jun 20, 2026",
+    category: "Technical Skills",
+    status: "Sent",
+    visibility: "Public",
+    deliveryStatus: "Delivered",
+    subject: "API redesign review",
+  },
+  {
+    id: "sf2",
+    recipient: "Lena Brandt",
+    recipientRole: "UX Researcher",
+    date: "Jun 16, 2026",
+    category: "Communication",
+    status: "Sent",
+    visibility: "Public",
+    deliveryStatus: "Delivered",
+    subject: "Design sync facilitation",
+  },
+  {
+    id: "sf3",
+    recipient: "Daniel Cho",
+    recipientRole: "Staff Engineer",
+    date: "Jun 24, 2026",
+    category: "Collaboration",
+    status: "Draft",
+    visibility: "Manager Only",
+    deliveryStatus: "Pending",
+    subject: "Incident response support",
+  },
+  {
+    id: "sf4",
+    recipient: "Priya Nair",
+    recipientRole: "Senior Product Manager",
+    date: "May 30, 2026",
+    category: "Leadership",
+    status: "Withdrawn",
+    visibility: "Private",
+    deliveryStatus: "Failed",
+    subject: "Roadmap prioritization session",
+  },
+];
+
+export const recognitionAwards: RecognitionItem[] = [
+  {
+    id: "ra1",
+    type: "Award",
+    title: "Innovation Award",
+    description: "Proposed and built the internal tooling that cut deployment time by 40%.",
+    from: "Engineering Leadership",
+    date: "Jun 2026",
+    icon: "Lightbulb",
+  },
+  {
+    id: "ra2",
+    type: "Badge",
+    title: "Team Player",
+    description: "Supported the billing squad during a critical on-call rotation.",
+    from: "Daniel Cho",
+    date: "Jun 23, 2026",
+    icon: "Users",
+  },
+  {
+    id: "ra3",
+    type: "Kudos",
+    title: "Customer Champion",
+    description: "Resolved a high-priority customer escalation within hours.",
+    from: "Support Team",
+    date: "Jun 5, 2026",
+    icon: "Heart",
+  },
+  {
+    id: "ra4",
+    type: "Milestone",
+    title: "3 Years at the Company",
+    description: "Celebrating three years of contributions to the platform team.",
+    from: "People Operations",
+    date: "May 18, 2026",
+    icon: "PartyPopper",
+  },
+  {
+    id: "ra5",
+    type: "Award",
+    title: "Outstanding Contribution",
+    description: "Delivered the Q2 platform migration two weeks ahead of schedule.",
+    from: "Priya Nair",
+    date: "Jun 15, 2026",
+    icon: "Award",
+  },
+  {
+    id: "ra6",
+    type: "Badge",
+    title: "Leadership Excellence",
+    description: "Mentored two new engineers through their onboarding ramp-up.",
+    from: "Sandra Wells",
+    date: "Apr 28, 2026",
+    icon: "Crown",
+  },
+];
+
+export const reviewCycles: ReviewCycle[] = [
+  {
+    id: "rc1",
+    reviewType: "Self Review",
+    cycleName: "H1 2026 Performance Cycle",
+    status: "In Progress",
+    progress: 60,
+    dueDate: "Jul 3, 2026",
+  },
+  {
+    id: "rc2",
+    reviewType: "Peer Review",
+    cycleName: "Arjun Mehta — H1 2026",
+    status: "Not Started",
+    progress: 0,
+    dueDate: "Jul 8, 2026",
+    reviewer: "You",
+  },
+  {
+    id: "rc3",
+    reviewType: "Manager Review",
+    cycleName: "H1 2026 Performance Cycle",
+    status: "Not Started",
+    progress: 0,
+    dueDate: "Jul 15, 2026",
+    reviewer: "Sandra Wells",
+  },
+  {
+    id: "rc4",
+    reviewType: "Direct Report Review",
+    cycleName: "Aditi Sharma — H1 2026",
+    status: "In Progress",
+    progress: 30,
+    dueDate: "Jul 12, 2026",
+    reviewer: "You",
+  },
+];
+
+export const reviewHistory = [
+  { id: "rh1", cycleName: "H2 2025 Performance Cycle", completedDate: "Jan 14, 2026", overallRating: "Exceeds Expectations" },
+  { id: "rh2", cycleName: "H1 2025 Performance Cycle", completedDate: "Jul 10, 2025", overallRating: "Meets Expectations" },
+];
+
+export const surveys: SurveyItem[] = [
+  {
+    id: "sv1",
+    title: "Employee Satisfaction Survey",
+    description: "Annual survey covering overall job satisfaction and workplace experience.",
+    status: "Not Started",
+    dueDate: "Jul 1, 2026",
+    completion: 0,
+    questionCount: 24,
+  },
+  {
+    id: "sv2",
+    title: "Engagement Survey",
+    description: "Quarterly pulse check on motivation, alignment, and team engagement.",
+    status: "In Progress",
+    dueDate: "Jun 28, 2026",
+    completion: 45,
+    questionCount: 18,
+  },
+  {
+    id: "sv3",
+    title: "Work Environment Survey",
+    description: "Feedback on physical and remote work environment and tooling.",
+    status: "Completed",
+    dueDate: "Jun 10, 2026",
+    completion: 100,
+    questionCount: 15,
+  },
+  {
+    id: "sv4",
+    title: "Leadership Survey",
+    description: "Evaluate leadership effectiveness across your reporting chain.",
+    status: "Completed",
+    dueDate: "May 22, 2026",
+    completion: 100,
+    questionCount: 12,
+  },
+  {
+    id: "sv5",
+    title: "Compensation Survey",
+    description: "Benchmark perceptions of compensation and benefits fairness.",
+    status: "Not Started",
+    dueDate: "Jul 20, 2026",
+    completion: 0,
+    questionCount: 10,
+  },
+  {
+    id: "sv6",
+    title: "Culture Survey",
+    description: "Assess alignment with company values and team culture.",
+    status: "Completed",
+    dueDate: "Apr 30, 2026",
+    completion: 100,
+    questionCount: 20,
+  },
+];
+
+export const developmentStrengths: DevelopmentSkill[] = [
+  { id: "ds1", name: "Technical Architecture", level: 92, type: "strength" },
+  { id: "ds2", name: "Cross-Team Collaboration", level: 88, type: "strength" },
+  { id: "ds3", name: "Incident Response", level: 85, type: "strength" },
+];
+
+export const developmentGaps: DevelopmentSkill[] = [
+  { id: "dg1", name: "Delegation & Mentoring", level: 54, type: "gap" },
+  { id: "dg2", name: "Executive Communication", level: 48, type: "gap" },
+  { id: "dg3", name: "Budget & Resource Planning", level: 40, type: "gap" },
+];
+
+export const recommendations: Recommendation[] = [
+  {
+    id: "rec1",
+    title: "Leading High-Performing Teams",
+    provider: "Internal Learning Hub",
+    type: "Course",
+    duration: "4 hours",
+  },
+  {
+    id: "rec2",
+    title: "Certified Scrum Product Owner",
+    provider: "Scrum Alliance",
+    type: "Certification",
+    duration: "2 days",
+  },
+  {
+    id: "rec3",
+    title: "Executive Communication Mentorship",
+    provider: "Sandra Wells (Engineering Manager)",
+    type: "Mentorship",
+    duration: "Ongoing — 1hr/month",
+  },
+  {
+    id: "rec4",
+    title: "Senior Engineering Lead — Platform Team",
+    provider: "Internal Mobility Board",
+    type: "Internal Mobility",
+    duration: "Open role",
+  },
+];
+
+export const certifications = [
+  { id: "c1", name: "AWS Certified Solutions Architect", issuer: "Amazon Web Services", issuedDate: "Mar 2025", status: "Active" as const },
+  { id: "c2", name: "Certified Kubernetes Administrator", issuer: "CNCF", issuedDate: "Nov 2024", status: "Active" as const },
+];
+
+export const notifications: NotificationItem[] = [
+  {
+    id: "n1",
+    title: "New feedback received",
+    description: "Priya Nair shared feedback on the Q2 platform migration.",
+    timestamp: "2h ago",
+    read: false,
+    type: "feedback",
+  },
+  {
+    id: "n2",
+    title: "Review deadline approaching",
+    description: "Self Review for the H1 2026 cycle is due in 8 days.",
+    timestamp: "5h ago",
+    read: false,
+    type: "review",
+  },
+  {
+    id: "n3",
+    title: "Recognition awarded",
+    description: "Daniel Cho awarded you the Team Player badge.",
+    timestamp: "1d ago",
+    read: false,
+    type: "recognition",
+  },
+  {
+    id: "n4",
+    title: "Survey available",
+    description: "The Engagement Survey is now open for responses.",
+    timestamp: "3d ago",
+    read: true,
+    type: "survey",
+  },
+  {
+    id: "n5",
+    title: "Manager completed review",
+    description: "Sandra Wells submitted your H1 2025 manager review.",
+    timestamp: "1w ago",
+    read: true,
+    type: "system",
+  },
+];
+
+export const analyticsTrends = {
+  averageRatingTrend: [4.1, 4.2, 4.0, 4.3, 4.4, 4.4],
+  participationTrend: [68, 72, 75, 79, 81, 84],
+  months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+  categoryBreakdown: [
+    { category: "Collaboration", value: 28 },
+    { category: "Technical Skills", value: 24 },
+    { category: "Leadership", value: 18 },
+    { category: "Communication", value: 14 },
+    { category: "Recognition", value: 10 },
+    { category: "Other", value: 6 },
+  ],
+  sentimentBreakdown: { positive: 72, neutral: 21, negative: 7 },
+};
