@@ -1,19 +1,23 @@
 'use client';
+import { useEffect, useState, useCallback } from 'react';
 import { CalendarDays, Clock, User } from 'lucide-react';
-import { leaveRequests } from '@/data/mockData';
+import { useAuth } from '@/hooks/useAuth';
 
-const upcomingLeaves = leaveRequests
-  .filter(r => r.status === 'Approved' || r.status === 'Pending')
-  .slice(0, 4);
+interface EmployeeLeaveRequest {
+  requestId: string;
+  leaveType: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  managerName: string;
+  isHalfDay: boolean;
+  session?: string;
+  duration?: number;
+}
 
 function daysUntil(dateStr: string) {
-  const parts = dateStr.split(' ');
-  const months: Record<string, number> = {
-    Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,
-    Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11,
-  };
-  const d = new Date(parseInt(parts[2]), months[parts[1]], parseInt(parts[0]));
-  const diff = Math.ceil((d.getTime() - Date.now()) / 86400000);
+  const date = new Date(dateStr);
+  const diff = Math.ceil((date.getTime() - Date.now()) / 86400000);
   return diff;
 }
 
@@ -27,14 +31,76 @@ const typeColors: Record<string, string> = {
 };
 
 export default function UpcomingLeaves() {
+  const { user } = useAuth();
+  const employeeId = user?.userId;
+  const [leaves, setLeaves] = useState<EmployeeLeaveRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchLeaves = useCallback(async () => {
+    if (!employeeId) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch(`/api/timeOff/leave-requests?employeeId=${encodeURIComponent(employeeId)}&status=APPROVED,PENDING`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || 'Failed to load upcoming leaves');
+      }
+      const data = (await res.json()) as EmployeeLeaveRequest[];
+      setLeaves(data);
+      setLastUpdated(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load leaves');
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeId]);
+
+  useEffect(() => {
+    if (!employeeId) return;
+    fetchLeaves();
+
+    const interval = window.setInterval(fetchLeaves, 30000);
+    const onFocus = () => fetchLeaves();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [employeeId, fetchLeaves]);
+
+  const upcomingLeaves = leaves
+    .filter(leave => ['APPROVED', 'PENDING'].includes(leave.status))
+    .filter(leave => {
+      const start = new Date(leave.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return leave.status === 'PENDING' || start >= today;
+    })
+    .slice(0, 4);
+
   return (
     <div className="card overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100">
-        <h2 className="section-title">Upcoming Approved Leaves</h2>
-        <p className="section-subtitle">Confirmed and pending requests for future dates</p>
+      <div className="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="section-title">Upcoming Approved Leaves</h2>
+          <p className="section-subtitle">Confirmed and pending requests for future dates</p>
+        </div>
+        <div className="flex items-center gap-3 text-2xs text-slate-500">
+          <button onClick={fetchLeaves} className="font-medium text-brand-600 hover:underline">Refresh</button>
+          {lastUpdated ? <span>Last updated {lastUpdated.toLocaleTimeString()}</span> : <span>Loading...</span>}
+        </div>
       </div>
 
-      {upcomingLeaves.length === 0 ? (
+      {loading ? (
+        <div className="p-8 text-center text-slate-500">Loading upcoming leaves...</div>
+      ) : error ? (
+        <div className="p-8 text-center text-rose-600">{error}</div>
+      ) : upcomingLeaves.length === 0 ? (
         <div className="p-8 text-center">
           <CalendarDays size={24} className="text-slate-300 mx-auto mb-2" />
           <p className="text-xs text-slate-400">No upcoming leaves scheduled</p>
@@ -43,38 +109,37 @@ export default function UpcomingLeaves() {
         <div className="divide-y divide-slate-100">
           {upcomingLeaves.map(leave => {
             const countdown = daysUntil(leave.startDate);
-            const colorClass = typeColors[leave.type] ?? 'bg-slate-100 text-slate-600';
+            const colorClass = typeColors[leave.leaveType] ?? 'bg-slate-100 text-slate-600';
+            const duration = leave.duration ?? Math.max(1, Math.ceil((new Date(leave.endDate).getTime() - new Date(leave.startDate).getTime()) / 86400000) + 1);
             return (
-              <div key={leave.id} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-25 transition-colors">
-                {/* Type pill */}
+              <div key={leave.requestId} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-25 transition-colors">
                 <div className={`flex-shrink-0 px-2 py-1 rounded text-2xs font-semibold ${colorClass}`}>
-                  {leave.type.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                  {leave.leaveType.split(' ').map(w => w[0]).join('').slice(0, 2)}
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-slate-800">{leave.type}</span>
-                    <span className={`badge ${leave.status === 'Approved' ? 'badge-green' : 'badge-yellow'}`}>
-                      {leave.status}
+                    <span className="text-xs font-medium text-slate-800">{leave.leaveType}</span>
+                    <span className={`badge ${leave.status === 'APPROVED' ? 'badge-green' : 'badge-yellow'}`}>
+                      {leave.status === 'APPROVED' ? 'Approved' : 'Pending'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                     <span className="flex items-center gap-1 text-2xs text-slate-500">
                       <CalendarDays size={10} />
-                      {leave.startDate} – {leave.endDate}
+                      {new Date(leave.startDate).toLocaleDateString()} – {new Date(leave.endDate).toLocaleDateString()}
                     </span>
                     <span className="flex items-center gap-1 text-2xs text-slate-500">
                       <Clock size={10} />
-                      {leave.duration} {leave.duration === 1 ? 'day' : 'days'}
+                      {duration} {duration === 1 ? 'day' : 'days'}
                     </span>
                     <span className="flex items-center gap-1 text-2xs text-slate-500">
                       <User size={10} />
-                      {leave.approver}
+                      {leave.managerName}
                     </span>
                   </div>
                 </div>
 
-                {/* Countdown */}
                 <div className="flex-shrink-0 text-right">
                   {countdown > 0 ? (
                     <>

@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-export default function ManagerDashboardPage() {
+export default function ManagerDashboardPage() {  
   const mockGoals = [
     {
       id: "g1",

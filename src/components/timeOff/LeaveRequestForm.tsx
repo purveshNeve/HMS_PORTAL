@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Paperclip, X, ChevronDown, Info } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from '@/hooks/useAuth';
 
 const leaveTypes = [
   'Annual Leave', 'Casual Leave', 'Sick Leave', 'Maternity Leave',
@@ -21,9 +22,19 @@ export default function LeaveRequestForm() {
   const [session, setSession] = useState<'Morning' | 'Afternoon'>('Morning');
   const [reason, setReason] = useState('');
   const [notify, setNotify] = useState(true);
+  const [managerId, setManagerId] = useState('');
+  const [managerName, setManagerName] = useState('');
+  const [emergencyContact, setEmergencyContact] = useState('');
+  const [delegate, setDelegate] = useState('');
   const [fileName, setFileName] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [draft, setDraft] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [referenceId, setReferenceId] = useState('');
+  const { user } = useAuth();
+  const employeeId = user?.userId ?? 'EMPLOYEE_001';
+  const employeeName = user?.name ?? 'Current Employee';
 
   const calcDays = () => {
     if (!startDate || !endDate) return 0;
@@ -33,6 +44,58 @@ export default function LeaveRequestForm() {
   };
   const days = calcDays();
 
+  const handleSubmit = useCallback(async () => {
+    setError('');
+    
+    // Validation
+    if (!managerId || !managerName) {
+      setError('Manager ID and Manager Name are required');
+      return;
+    }
+
+    if (!leaveType || !startDate || !endDate || !reason) {
+      setError('All required fields must be filled');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/timeOff/leave-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employeeId,
+          employeeName,
+          managerId,
+          managerName,
+          reason,
+          startDate,
+          endDate,
+          leaveType,
+          isHalfDay,
+          session,
+          emergencyContact,
+          delegate,
+          notifyManager: notify,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to submit leave request');
+      }
+
+      setReferenceId(data.requestId || `LR-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`);
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit leave request');
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeId, employeeName, managerId, managerName, reason, startDate, endDate, leaveType, isHalfDay, session, emergencyContact, delegate, notify]);
+
   if (submitted) return (
     <div className="card p-6 text-center">
       <div className="w-10 h-10 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -41,9 +104,17 @@ export default function LeaveRequestForm() {
         </svg>
       </div>
       <h3 className="text-sm font-semibold text-slate-800">Request Submitted</h3>
-      <p className="text-xs text-slate-500 mt-1">Your leave request has been submitted and is pending manager approval.</p>
-      <p className="text-2xs text-slate-400 mt-0.5">Reference ID: LR-2025-0052</p>
-      <button onClick={() => setSubmitted(false)} className="btn-secondary mt-4 mx-auto">New Request</button>
+      <p className="text-xs text-slate-500 mt-1">Your leave request has been submitted to {managerName} and is pending manager approval.</p>
+      <p className="text-2xs text-slate-400 mt-0.5">Reference ID: {referenceId}</p>
+      <button onClick={() => {
+        setSubmitted(false);
+        setLeaveType('');
+        setStartDate('');
+        setEndDate('');
+        setReason('');
+        setManagerId('');
+        setManagerName('Anita Sharma');
+      }} className="btn-secondary mt-4 mx-auto">New Request</button>
     </div>
   );
 
@@ -151,14 +222,24 @@ export default function LeaveRequestForm() {
         {/* Emergency Contact */}
         <div>
           <label className="form-label">Emergency Contact During Leave</label>
-          <input type="text" className="form-input" placeholder="Name and phone number" />
+          <input 
+            type="text" 
+            className="form-input" 
+            placeholder="Name and phone number"
+            value={emergencyContact}
+            onChange={e => setEmergencyContact(e.target.value)}
+          />
         </div>
 
         {/* Delegate */}
         <div>
           <label className="form-label">Delegate Responsibilities To</label>
           <div className="relative">
-            <select className="form-select pr-7">
+            <select 
+              className="form-select pr-7"
+              value={delegate}
+              onChange={e => setDelegate(e.target.value)}
+            >
               <option value="">Select team member</option>
               {delegates.map(d => <option key={d}>{d}</option>)}
             </select>
@@ -201,17 +282,46 @@ export default function LeaveRequestForm() {
             />
             <span className="text-xs text-slate-700">Notify manager (Anita Sharma) by email</span>
           </label>
+          <div className="grid gap-3 mt-3 sm:grid-cols-2">
+            <div>
+              <label className="form-label">Manager ID</label>
+              <input
+                type="text"
+                className="form-input"
+                value={managerId}
+                onChange={e => setManagerId(e.target.value)}
+                placeholder="Enter manager ID"
+              />
+            </div>
+            <div>
+              <label className="form-label">Manager Name</label>
+              <input
+                type="text"
+                className="form-input"
+                value={managerName}
+                onChange={e => setManagerName(e.target.value)}
+                placeholder="Enter manager name"
+              />
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="px-4 py-3 bg-red-50 border-t border-red-200">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-2 bg-slate-25">
         <button
-          className="btn-primary"
-          onClick={() => setSubmitted(true)}
-          disabled={!leaveType || !startDate || !endDate || !reason}
+          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleSubmit}
+          disabled={loading || !leaveType || !startDate || !endDate || !reason || !managerId || !managerName}
         >
-          Submit Request
+          {loading ? 'Submitting...' : 'Submit Request'}
         </button>
         <button className="btn-secondary" onClick={() => setDraft(true)}>
           Save Draft
