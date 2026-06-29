@@ -44,7 +44,7 @@ export default function UpcomingLeaves() {
     setError('');
 
     try {
-      const res = await fetch(`/api/timeOff/leave-requests?employeeId=${encodeURIComponent(employeeId)}&status=APPROVED,PENDING`);
+      const res = await fetch(`/api/timeOff/leave-requests?employeeId=${encodeURIComponent(employeeId)}&status=APPROVED,PENDING,REJECTED`);
       if (!res.ok) {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error || 'Failed to load upcoming leaves');
@@ -65,21 +65,24 @@ export default function UpcomingLeaves() {
 
     const interval = window.setInterval(fetchLeaves, 30000);
     const onFocus = () => fetchLeaves();
+    const onLeaveRequestUpdated = () => fetchLeaves();
     window.addEventListener('focus', onFocus);
+    window.addEventListener('leave-request-updated', onLeaveRequestUpdated);
 
     return () => {
       window.clearInterval(interval);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('leave-request-updated', onLeaveRequestUpdated);
     };
   }, [employeeId, fetchLeaves]);
 
   const upcomingLeaves = leaves
-    .filter(leave => ['APPROVED', 'PENDING'].includes(leave.status))
+    .filter(leave => ['APPROVED', 'PENDING', 'REJECTED'].includes(leave.status))
     .filter(leave => {
       const start = new Date(leave.startDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      return leave.status === 'PENDING' || start >= today;
+      return leave.status === 'PENDING' || leave.status === 'REJECTED' || start >= today;
     })
     .slice(0, 4);
 
@@ -120,8 +123,14 @@ export default function UpcomingLeaves() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-medium text-slate-800">{leave.leaveType}</span>
-                    <span className={`badge ${leave.status === 'APPROVED' ? 'badge-green' : 'badge-yellow'}`}>
-                      {leave.status === 'APPROVED' ? 'Approved' : 'Pending'}
+                    <span className={`badge ${
+                      leave.status === 'APPROVED'
+                        ? 'badge-green'
+                        : leave.status === 'REJECTED'
+                          ? 'badge-red'
+                          : 'badge-yellow'
+                    }`}>
+                      {leave.status === 'APPROVED' ? 'Approved' : leave.status === 'REJECTED' ? 'Rejected' : 'Pending'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-0.5 flex-wrap">

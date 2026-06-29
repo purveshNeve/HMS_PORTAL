@@ -10,15 +10,11 @@ interface LeaveApprovalRequest {
   employeeName: string;
   managerId: string;
   managerName: string;
-  leaveType: string;
   startDate: string;
   endDate: string;
-  isHalfDay: boolean;
-  session?: string;
   reason: string;
-  emergencyContact?: string;
-  delegate?: string;
   status: string;
+  notifyManager?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,11 +48,11 @@ export default function LeaveApprovalCards() {
     setLoading(true);
     setError('');
     try {
-      const url = `/api/timeOff/leave-requests?managerId=${encodeURIComponent(managerId)}&status=PENDING`;
+      const url = `/api/timeOff/wfh-request?managerId=${encodeURIComponent(managerId)}&status=PENDING`;
       const res = await fetch(url);
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || 'Failed to load leave requests');
+        throw new Error(body?.error || 'Failed to load WFH requests');
       }
       const data = (await res.json()) as LeaveApprovalRequest[];
       const normalizedRequests = data
@@ -67,7 +63,7 @@ export default function LeaveApprovalCards() {
         .filter(req => req.requestId);
 
       if (normalizedRequests.length !== data.length) {
-        console.warn('Some leave requests were missing requestId and were filtered out', data);
+        console.warn('Some WFH requests were missing requestId and were filtered out', data);
       }
 
       setRequests(normalizedRequests);
@@ -84,34 +80,26 @@ export default function LeaveApprovalCards() {
     }
   }, [fetchRequests, managerId, isManager]);
 
-  const updateRequestStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+  const submitDecision = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
     if (!managerId) return;
-    if (!requestId) {
-      setError('Leave request ID is missing');
-      return;
-    }
 
     setActionLoading(prev => ({ ...prev, [requestId]: true }));
     setError('');
-
     try {
-      const res = await fetch(`/api/timeOff/leave-requests/${requestId}`, {
+      const res = await fetch(`/api/timeOff/wfh-request`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ managerId, status }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, managerId, status }),
       });
-
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || 'Failed to update request');
+        throw new Error(body?.error || 'Failed to submit decision');
       }
-
-      const updated = await res.json();
       setRequests(prev => prev.filter(req => req.requestId !== requestId));
+      window.dispatchEvent(new Event('leave-request-updated'));
+      window.dispatchEvent(new Event('wfh-request-updated'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to change request status');
+      setError(err instanceof Error ? err.message : 'Unable to submit decision');
     } finally {
       setActionLoading(prev => ({ ...prev, [requestId]: false }));
     }
@@ -120,8 +108,8 @@ export default function LeaveApprovalCards() {
   if (!isManager) {
     return (
       <div className="card p-6">
-        <h2 className="section-title">Leave Approval</h2>
-        <p className="text-sm text-slate-500">You must be signed in as a manager to view leave approvals.</p>
+        <h2 className="section-title">WFH Approval</h2>
+        <p className="text-sm text-slate-500">You must be signed in as a manager to view WFH approvals.</p>
       </div>
     );
   }
@@ -131,8 +119,8 @@ export default function LeaveApprovalCards() {
       <div className="card p-5 border-slate-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="section-title">Leave Approval</h2>
-            <p className="section-subtitle">Review incoming leave requests and approve or reject them.</p>
+            <h2 className="section-title">WFH Approval</h2>
+            <p className="section-subtitle">Review incoming work-from-home requests and approve or reject them.</p>
           </div>
           <div className="text-slate-500 text-sm">{requests.length} pending request{requests.length !== 1 ? 's' : ''}</div>
         </div>
@@ -145,9 +133,9 @@ export default function LeaveApprovalCards() {
       )}
 
       {loading ? (
-        <div className="card p-6 text-center text-slate-500">Loading leave requests...</div>
+        <div className="card p-6 text-center text-slate-500">Loading WFH requests...</div>
       ) : requests.length === 0 ? (
-        <div className="card p-6 text-center text-slate-500">No pending leave requests at the moment.</div>
+        <div className="card p-6 text-center text-slate-500">No pending WFH requests at the moment.</div>
       ) : (
         <div className="grid gap-4">
           {requests.map(request => (
@@ -159,7 +147,7 @@ export default function LeaveApprovalCards() {
                     <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-600">{request.requestId}</span>
                   </div>
                   <h3 className="text-base font-semibold text-slate-900">{request.employeeName}</h3>
-                  <p className="text-sm text-slate-600">{request.leaveType}</p>
+                  <p className="text-sm text-slate-600">Work From Home Request</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={"badge " + (statusClasses[request.status] ?? 'badge-gray')}>{statusLabels[request.status] ?? request.status}</span>
@@ -175,8 +163,8 @@ export default function LeaveApprovalCards() {
                   <span>{new Date(request.endDate).toLocaleDateString()}</span>
                 </div>
                 <div>
-                  <span className="block text-slate-500 text-2xs uppercase tracking-[0.2em]">Session</span>
-                  <span>{request.isHalfDay ? request.session || 'Half Day' : 'Full Day'}</span>
+                  <span className="block text-slate-500 text-2xs uppercase tracking-[0.2em]">Notify Manager</span>
+                  <span>{request.notifyManager === false ? 'No' : 'Yes'}</span>
                 </div>
               </div>
 
@@ -185,37 +173,22 @@ export default function LeaveApprovalCards() {
                 <p className="mt-1 whitespace-pre-wrap">{request.reason}</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 text-sm text-slate-600">
-                {request.emergencyContact && (
-                  <div>
-                    <p className="text-slate-500 text-2xs uppercase tracking-[0.2em]">Emergency contact</p>
-                    <p className="mt-1">{request.emergencyContact}</p>
-                  </div>
-                )}
-                {request.delegate && (
-                  <div>
-                    <p className="text-slate-500 text-2xs uppercase tracking-[0.2em]">Delegate</p>
-                    <p className="mt-1">{request.delegate}</p>
-                  </div>
-                )}
-              </div>
-
               <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3">
                 <button
                   className="btn-primary min-w-30 flex items-center justify-center gap-2"
-                  onClick={() => updateRequestStatus(request.requestId, 'APPROVED')}
+                  onClick={() => submitDecision(request.requestId, 'APPROVED')}
                   disabled={request.status !== 'PENDING' || actionLoading[request.requestId]}
                 >
                   <Check size={14} />
-                  {actionLoading[request.requestId] ? 'Working...' : 'Accept'}
+                  Accept
                 </button>
                 <button
                   className="btn-secondary min-w-30 flex items-center justify-center gap-2"
-                  onClick={() => updateRequestStatus(request.requestId, 'REJECTED')}
+                  onClick={() => submitDecision(request.requestId, 'REJECTED')}
                   disabled={request.status !== 'PENDING' || actionLoading[request.requestId]}
                 >
                   <X size={14} />
-                  {actionLoading[request.requestId] ? 'Working...' : 'Reject'}
+                  Reject
                 </button>
               </div>
             </div>

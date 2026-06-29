@@ -45,17 +45,6 @@ export const holidays: Holiday[] = [
   { id: 'H15', name: 'Year-End Shutdown',           date: '31 Dec 2025', day: 'Wednesday', type: 'Shutdown', locations: ['All India'] },
 ];
 
-export const teamMembers: TeamMember[] = [
-  { id: 'T01', name: 'Riya Mehta',      role: 'Product Designer',    initials: 'RM', color: '#4f46e5', onLeave: true,  leaveType: 'Annual Leave',  leaveUntil: '20 Jun 2025' },
-  { id: 'T02', name: 'Arjun Verma',     role: 'Backend Engineer',    initials: 'AV', color: '#0891b2', onLeave: true,  leaveType: 'Sick Leave',    leaveUntil: '17 Jun 2025' },
-  { id: 'T03', name: 'Priya Nair',      role: 'QA Engineer',         initials: 'PN', color: '#059669', onLeave: false },
-  { id: 'T04', name: 'Karan Singh',     role: 'Frontend Engineer',   initials: 'KS', color: '#d97706', onLeave: false },
-  { id: 'T05', name: 'Sneha Iyer',      role: 'Product Manager',     initials: 'SI', color: '#7c3aed', onLeave: false },
-  { id: 'T06', name: 'Rahul Gupta',     role: 'Data Analyst',        initials: 'RG', color: '#b45309', onLeave: true,  leaveType: 'Work From Home',leaveUntil: '18 Jun 2025' },
-  { id: 'T07', name: 'Deepa Krishnan',  role: 'DevOps Engineer',     initials: 'DK', color: '#0f766e', onLeave: false },
-  { id: 'T08', name: 'Vivek Sharma',    role: 'Tech Lead',           initials: 'VS', color: '#9333ea', onLeave: false },
-];
-
 export const notifications: Notification[] = [
   { id: 'N01', type: 'success', message: 'Your Annual Leave request (LR-2025-0041) for 10–14 Jul has been approved by Anita Sharma.', time: '2 hours ago',   read: false },
   { id: 'N02', type: 'warning', message: 'Comp Off balance of 1 day is expiring on 30 Jun 2025. Apply before it lapses.',                time: '1 day ago',    read: false },

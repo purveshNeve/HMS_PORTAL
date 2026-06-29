@@ -37,6 +37,35 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   }
 }
 
+export async function sendLeaveRequestNotification(email: string, managerName: string, requestId: string, employeeName: string, startDate: string, endDate: string, leaveType: string) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not defined");
+  }
+
+  const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  const leaveDetailsUrl = `${appUrl}/manager/approvals/leaveApproval`;
+
+  await resend.emails.send({
+    from: resendFrom,
+    to: [email],
+    subject: `New leave request from ${employeeName}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;">
+        <h1 style="font-size:20px;margin-bottom:8px;">New leave request pending approval</h1>
+        <p>Hi ${managerName},</p>
+        <p>${employeeName} has submitted a ${leaveType} request for ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}.</p>
+        <p>Request ID: <strong>${requestId}</strong></p>
+        <p>
+          Please review and approve or reject the request by visiting the manager approvals page.
+        </p>
+        <p>
+          <a href="${leaveDetailsUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;">View request</a>
+        </p>
+      </div>
+    `,
+  });
+}
+
 export async function sendIncorrectPasswordAlertEmail(email: string, name?: string) {
   if (!process.env.RESEND_API_KEY) {
     throw new Error("RESEND_API_KEY is not defined");

@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { CheckCircle, AlertCircle, Info, XCircle, X, CheckCheck } from 'lucide-react';
-import { notifications } from '@/data/mockData';
 import type { Notification } from '@/types/indexOriginal';
 import clsx from 'clsx';
 
@@ -12,13 +12,116 @@ const iconMap = {
   error:   { icon: XCircle,     color: 'text-red-500',     bg: 'bg-red-50',     border: 'border-red-200'     },
 };
 
+interface BackendLeaveRequest {
+  requestId: string;
+  leaveType: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  managerName: string;
+  comments?: string;
+}
+
+function buildNotificationItems(requests: BackendLeaveRequest[]) {
+  const notices: Notification[] = [];
+  requests.forEach((req) => {
+    const approved = req.status === 'APPROVED';
+    const rejected = req.status === 'REJECTED';
+    if (approved || rejected) {
+      notices.push({
+        id: `leave-${req.requestId}`,
+        type: approved ? 'success' : 'warning',
+        message: `Your ${req.leaveType} request (${req.requestId}) has been ${approved ? 'approved' : 'rejected'} by ${req.managerName}.`,
+        time: new Date(req.endDate).toLocaleDateString(),
+        read: false,
+      });
+    } else if (req.status === 'PENDING') {
+      notices.push({
+        id: `leave-${req.requestId}`,
+        type: 'info',
+        message: `Your ${req.leaveType} request (${req.requestId}) is pending approval from ${req.managerName}.`,
+        time: new Date(req.startDate).toLocaleDateString(),
+        read: false,
+      });
+    }
+    if (req.comments && req.comments.trim()) {
+      notices.push({
+        id: `comment-${req.requestId}`,
+        type: 'info',
+        message: `Manager commented on ${req.requestId}: "${req.comments}"`,
+        time: new Date(req.endDate).toLocaleDateString(),
+        read: false,
+      });
+    }
+  });
+  return notices;
+}
+
 export default function NotificationsAlerts() {
-  const [items, setItems] = useState<Notification[]>(notifications);
+  const { user } = useAuth();
+  const employeeId = user?.userId;
+  const [items, setItems] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchNotifications = useCallback(async () => {
+    if (!employeeId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/timeOff/leave-requests?employeeId=${encodeURIComponent(employeeId)}&status=APPROVED,PENDING,REJECTED`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || 'Failed to load notifications');
+      }
+
+      const data = await res.json() as BackendLeaveRequest[];
+      const notices = buildNotificationItems(data);
+      setItems(notices);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeId]);
+
+  useEffect(() => {
+    fetchNotifications();
+
+    const handleRefresh = () => {
+      fetchNotifications();
+    };
+
+    window.addEventListener('leave-request-updated', handleRefresh);
+    window.addEventListener('focus', handleRefresh);
+
+    return () => {
+      window.removeEventListener('leave-request-updated', handleRefresh);
+      window.removeEventListener('focus', handleRefresh);
+    };
+  }, [fetchNotifications]);
 
   const dismiss = (id: string) => setItems(prev => prev.filter(n => n.id !== id));
   const markRead = (id: string) => setItems(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
 
   const unreadCount = items.filter(n => !n.read).length;
+
+  if (loading) {
+    return (
+      <div className="card p-6 text-center text-slate-500">Loading notifications...</div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card p-6 text-center text-rose-600">{error}</div>
+    );
+  }
 
   return (
     <div className="card overflow-hidden">
@@ -34,7 +137,7 @@ export default function NotificationsAlerts() {
         {unreadCount > 0 && (
           <button
             className="flex items-center gap-1 text-2xs text-slate-500 hover:text-brand-600 transition-colors"
-            onClick={() => setItems(prev => prev.map(n => ({ ...n, read: true })))}
+            onClick={() => setItems([])}
           >
             <CheckCheck size={11} />
             Mark all read
@@ -60,7 +163,7 @@ export default function NotificationsAlerts() {
               )}
               onClick={() => markRead(n.id)}
             >
-              <div className={clsx('flex-shrink-0 w-7 h-7 rounded flex items-center justify-center border mt-0.5', cfg.bg, cfg.border)}>
+              <div className={clsx('shrink-0 w-7 h-7 rounded flex items-center justify-center border mt-0.5', cfg.bg, cfg.border)}>
                 <Icon size={13} className={cfg.color} />
               </div>
               <div className="flex-1 min-w-0">
@@ -69,7 +172,7 @@ export default function NotificationsAlerts() {
               </div>
               <button
                 onClick={e => { e.stopPropagation(); dismiss(n.id); }}
-                className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors mt-0.5"
+                className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors mt-0.5"
               >
                 <X size={11} />
               </button>

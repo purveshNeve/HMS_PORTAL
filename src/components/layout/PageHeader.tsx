@@ -1,7 +1,27 @@
 'use client';
-import { Download, Plus, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 
 export default function PageHeader() {
+  const [lastUpdated, setLastUpdated] = useState<string>('Today');
+
+  const refreshData = () => {
+    setLastUpdated(new Date().toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }));
+    window.dispatchEvent(new Event('leave-request-updated'));
+  };
+
+  useEffect(() => {
+    const handleRefresh = () => refreshData();
+    window.addEventListener('leave-request-updated', handleRefresh);
+    return () => window.removeEventListener('leave-request-updated', handleRefresh);
+  }, []);
+
   return (
     <div className="bg-white border-b border-slate-200 px-6 py-3.5">
       <div className="flex items-start justify-between gap-4">
@@ -12,18 +32,23 @@ export default function PageHeader() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
-          <span className="text-2xs text-slate-400 hidden sm:inline">Last updated: Today, 09:14 AM</span>
-          <button className="btn-ghost text-slate-400">
+          <span className="text-2xs text-slate-400 hidden sm:inline">Last updated: {lastUpdated}</span>
+          <button
+            type="button"
+            onClick={refreshData}
+            className="btn-ghost text-slate-400 hover:text-slate-600"
+            aria-label="Refresh time-off data"
+          >
             <RefreshCw size={11} />
           </button>
-          <button className="btn-secondary">
+          {/* <button className="btn-secondary">
             <Download size={11} />
             Statement
-          </button>
-          <button className="btn-primary">
+          </button> */}
+          {/* <button className="btn-primary">
             <Plus size={11} />
             Apply Leave
-          </button>
+          </button> */}
         </div>
       </div>
 

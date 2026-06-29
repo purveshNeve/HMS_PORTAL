@@ -14,6 +14,21 @@ export default function EmploymentInfoSection({
 }: EmploymentInfoSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const departmentOptions = [
+    "Technology",
+    "Finance",
+    "Research and Developement",
+    "Cyber Security",
+    "Data Analyst",
+    "Billing",
+    "Administration",
+    "IT",
+    "Marketing",
+    "Sales",
+    "Public Relations",
+    "Quality Assurance",
+  ];
+
   const [formData, setFormData] = useState({
     department: profile.department || "",
     designation: profile.designation || "",
@@ -85,14 +100,19 @@ export default function EmploymentInfoSection({
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                 Department
               </label>
-              <input
-                type="text"
+              <select
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50"
-                placeholder="e.g., Engineering"
-              />
+              >
+                <option value="">Select department</option>
+                {departmentOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Designation */}

@@ -245,7 +245,7 @@ export default function EmployeeDashboardPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {leaveRequests.map((request) => (
-                <div key={request.type} className="flex items-center justify-between rounded-3xl bg-zinc-100 p-4 dark:bg-zinc-900">
+                <div key={`${request.type}-${request.date}`} className="flex items-center justify-between rounded-3xl bg-zinc-100 p-4 dark:bg-zinc-900">
                   <div>
                     <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{request.type}</p>
                     <p className="text-sm text-zinc-500">{request.date}</p>

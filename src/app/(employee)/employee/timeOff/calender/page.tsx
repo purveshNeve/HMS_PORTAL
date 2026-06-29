@@ -3,7 +3,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import HolidayCalendar   from '@/components/timeOff/HolidayCalendar';
 import TeamAvailability  from '@/components/timeOff/TeamAvailability';
 import AttendanceInsights from '@/components/timeOff/AttendanceInsights';
-
+import EntireTeam from '@/components/timeOff/EntireTeam';
 export default function CalendarPage() {
   return (
     <main className="flex-1 overflow-y-auto">
@@ -13,6 +13,7 @@ export default function CalendarPage() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
             <div className="xl:col-span-2">
               <HolidayCalendar />
+              <EntireTeam/>
             </div>
             <div className="space-y-5">
               <TeamAvailability />

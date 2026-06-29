@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
-
+    
     // Verify manager name matches (optional security check)
     if (manager.name.toLowerCase() !== managerName.toLowerCase()) {
       console.warn(
@@ -75,10 +75,21 @@ export async function POST(req: Request) {
 
     await leaveRequest.save();
 
-    // TODO: Send email notification to manager if notifyManager is true
     if (notifyManager) {
-      console.log(`Notifying manager ${manager.email} about leave request`);
-      // await sendLeaveRequestNotification(manager.email, leaveRequest);
+      try {
+        const { sendLeaveRequestNotification } = await import("@/lib/mail");
+        await sendLeaveRequestNotification(
+          manager.email,
+          manager.name,
+          leaveRequest.requestId,
+          leaveRequest.employeeName,
+          leaveRequest.startDate.toISOString(),
+          leaveRequest.endDate.toISOString(),
+          leaveRequest.leaveType
+        );
+      } catch (error) {
+        console.error("Failed to send leave request notification:", error);
+      }
     }
 
     return Response.json(

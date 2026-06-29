@@ -12,7 +12,7 @@ const statusMap = {
 function daysUntilExpiry(dateStr: string) {
   const parts = dateStr.split(' ');
   const months: Record<string,number> = {
-    Jan:0,Feb:1,Mar:2,Apr:3,May:4,May:4,Jun:5,
+    Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,
     Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11,
   };
   const d = new Date(parseInt(parts[2]), months[parts[1]], parseInt(parts[0]));

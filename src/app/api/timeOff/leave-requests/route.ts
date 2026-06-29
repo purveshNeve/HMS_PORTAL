@@ -8,9 +8,6 @@ export async function GET(req: Request) {
     const managerId = url.searchParams.get('managerId');
     const employeeId = url.searchParams.get('employeeId');
     const statusParam = url.searchParams.get('status');
-    if (!managerId && !employeeId) {
-      return Response.json({ error: 'managerId or employeeId is required' }, { status: 400 });
-    }
     let statusValues: string[] | undefined;
     if (statusParam) {
       statusValues = statusParam.split(',').map(status => status.trim()).filter(Boolean);
@@ -18,6 +15,9 @@ export async function GET(req: Request) {
       statusValues = ['PENDING'];
     } else if (employeeId) {
       statusValues = ['APPROVED', 'PENDING'];
+    }
+    if (!managerId && !employeeId && !statusValues?.length) {
+      return Response.json({ error: 'managerId, employeeId or status is required' }, { status: 400 });
     }
     const query: Record<string, any> = {};
     if (managerId) query.managerId = managerId;

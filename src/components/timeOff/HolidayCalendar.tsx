@@ -54,10 +54,6 @@ export default function HolidayCalendar() {
               </button>
             ))}
           </div>
-          <button className="btn-secondary">
-            <Download size={11} />
-            Export
-          </button>
         </div>
       </div>
 

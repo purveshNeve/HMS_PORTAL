@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const LeaveRequestSchema = new mongoose.Schema(
+const WorkFromHomeSchema = new mongoose.Schema(
   {
     requestId: {
       type: String,
@@ -23,10 +23,6 @@ const LeaveRequestSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    leaveType: {
-      type: String,
-      required: true,
-    },
     startDate: {
       type: Date,
       required: true,
@@ -35,34 +31,9 @@ const LeaveRequestSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    isHalfDay: {
-      type: Boolean,
-      default: false,
-    },
-    session: {
-      type: String,
-      enum: ["", "Morning", "Afternoon"],
-      default: "",
-    },
     reason: {
       type: String,
       required: true,
-    },
-    emergencyContact: {
-      type: String,
-      default: "",
-    },
-    delegate: {
-      type: String,
-      default: "",
-    },
-    comments: {
-      type: String,
-      default: "",
-    },
-    document: {
-      type: String,
-      default: null,
     },
     status: {
       type: String,
@@ -76,8 +47,8 @@ const LeaveRequestSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-const LeaveRequest =
-  mongoose.models.LeaveRequest ||
-  mongoose.model("LeaveRequest", LeaveRequestSchema);
+const WFHRequests =
+  mongoose.models.WFHRequests ||
+  mongoose.model("WFHRequests", WorkFromHomeSchema);
 
-export default LeaveRequest;
+export default WFHRequests;

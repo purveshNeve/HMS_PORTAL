@@ -1,0 +1,11 @@
+import NotificationsTable from '@/components/timeOff/NotificationsTable';
+
+export default function NotificationsPage() {
+  return (
+    <main className="flex-1 overflow-y-auto">
+      <div className="p-4 lg:p-6 space-y-5 max-w-screen-2xl mx-auto">
+        <NotificationsTable />
+      </div>
+    </main>
+  );
+}
