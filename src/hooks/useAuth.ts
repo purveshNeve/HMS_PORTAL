@@ -6,6 +6,8 @@ export function useAuth() {
   const { data: session, status, update } = useSession();
   const role: UserRole | undefined = session?.user?.role;
   const userId: string | undefined = session?.user?.userId;
+  const department: string | undefined = session?.user?.department; 
+;
   const isLoading = status === "loading";
   const isAuthenticated = status === "authenticated";
 
@@ -14,6 +16,7 @@ export function useAuth() {
     user: session?.user ?? null,
     role,
     userId,
+    department,
     isLoading,
     isAuthenticated,
     isAdmin: role === "admin",

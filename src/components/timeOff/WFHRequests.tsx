@@ -47,7 +47,24 @@ export default function WFHRequests() {
     managerId: '',
   });
   const [message, setMessage] = useState('');
-  const pct = Math.round((attendanceStats.wfhDaysUsed / attendanceStats.wfhDaysTotal) * 100);
+
+  // Calculate days between two dates (inclusive of both start and end date)
+  const calculateDaysBetween = (startDate: string, endDate: string): number => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  };
+
+  // Calculate days used from approved requests in database
+  const wfhDaysUsed = requests
+    .filter((req) => req.status === 'APPROVED')
+    .reduce((total, req) => total + calculateDaysBetween(req.startDate, req.endDate), 0);
+
+  const wfhDaysTotal = attendanceStats.wfhDaysTotal;
+  const wfhDaysRemaining = Math.max(0, wfhDaysTotal - wfhDaysUsed);
+  const pct = Math.round((wfhDaysUsed / wfhDaysTotal) * 100);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -172,12 +189,12 @@ export default function WFHRequests() {
       <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-6">
         <div>
           <p className="text-xs text-slate-500">Days Used</p>
-          <p className="text-2xl font-semibold text-slate-800">{attendanceStats.wfhDaysUsed}</p>
+          <p className="text-2xl font-semibold text-slate-800">{wfhDaysUsed}</p>
         </div>
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
             <span className="text-2xs text-slate-500">Annual quota</span>
-            <span className="text-2xs font-medium text-slate-700">{attendanceStats.wfhDaysUsed} / {attendanceStats.wfhDaysTotal} days</span>
+            <span className="text-2xs font-medium text-slate-700">{wfhDaysUsed} / {wfhDaysTotal} days</span>
           </div>
           <div className="progress-bar h-1.5">
             <div className="progress-fill bg-indigo-500" style={{ width: `${pct}%` }} />
@@ -185,7 +202,7 @@ export default function WFHRequests() {
         </div>
         <div>
           <p className="text-xs text-slate-500">Remaining</p>
-          <p className="text-2xl font-semibold text-indigo-700">{attendanceStats.wfhDaysTotal - attendanceStats.wfhDaysUsed}</p>
+          <p className="text-2xl font-semibold text-indigo-700">{wfhDaysRemaining}</p>
         </div>
       </div>
 

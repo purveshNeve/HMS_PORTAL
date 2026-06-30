@@ -25,7 +25,6 @@ export async function GET(req: Request) {
         query.status = { $in: statuses };
       }
     }
-
     const requests = await WFHRequests.find(query).sort({ createdAt: -1 }).lean();
     return NextResponse.json(requests, { status: 200 });
   } catch (error) {

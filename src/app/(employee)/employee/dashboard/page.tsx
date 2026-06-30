@@ -237,7 +237,6 @@ export default function EmployeeDashboardPage() {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Leave Requests</CardTitle>

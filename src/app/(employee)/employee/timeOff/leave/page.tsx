@@ -2,8 +2,8 @@
 import PageHeader from '@/components/layout/PageHeader';
 import LeaveRequestForm  from '@/components/timeOff/LeaveRequestForm';
 import LeaveBalanceTable from '@/components/timeOff/LeaveBalanceTable';
-import UpcomingLeaves    from '@/components/timeOff/UpcomingLeaves';
-
+import UpcomingLeaves from '@/components/timeOff/UpcomingLeaves';
+import Calender from '@/components/timeOff/Calender';
 export default function LeavePage() {
   return (
     <main className="flex-1 overflow-y-auto">
@@ -12,9 +12,9 @@ export default function LeavePage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
           <div className="xl:col-span-2">
             <LeaveRequestForm />
+            <Calender/>
           </div>
           <div className="space-y-5">
-            <LeaveBalanceTable />
             <UpcomingLeaves />
           </div>
         </div>

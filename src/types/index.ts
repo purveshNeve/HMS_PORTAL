@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   userId: string;
   image?: string | null;
+  department?: string;
 }
 
 export interface Employee {

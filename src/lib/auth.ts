@@ -12,6 +12,7 @@ declare module "next-auth" {
     id: string;
     role?: UserRole;
     userId?: string;
+    department?: string;
   }
   interface Session {user: {
       id: string;
@@ -19,6 +20,7 @@ declare module "next-auth" {
       email: string;
       name: string;
       role: UserRole;
+      department?: string;
       image?: string | null;
     };
   }
@@ -28,6 +30,7 @@ declare module "@auth/core/jwt" {
     id?: string;
     role?: UserRole;
     userId?: string;
+    department?: string;
   }
 }
 export const authConfig: NextAuthConfig = {
@@ -40,6 +43,7 @@ export const authConfig: NextAuthConfig = {
         password: { label: "Password", type: "password" },
         userId: { label: "User ID", type: "text" },
         role: { label: "Role", type: "text" },
+        department: {label: "Department" , type: "text"},
       },
       async authorize(credentials){
       try {
@@ -69,6 +73,7 @@ export const authConfig: NextAuthConfig = {
           email: user.email,
           role: user.role,
           userId: user.userId,
+          department: user.department,
         };
       } catch (error) {
         throw new Error(error instanceof Error ? error.message : "Authentication failed");
@@ -89,6 +94,7 @@ export const authConfig: NextAuthConfig = {
         token.id = user.id;
         token.role = (user.role as string).toLowerCase() as UserRole;
         token.userId = user.userId ?? "";
+        token.department = user.department ?? "";
       }
       return token;
     },
@@ -97,6 +103,7 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.id as string ?? "";
         session.user.role = (token.role as UserRole) ?? "employee";
         session.user.userId = token.userId as string ?? "";
+        session.user.department = token.department as string ?? "";
       }
       return session;
     },
