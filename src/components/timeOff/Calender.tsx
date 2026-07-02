@@ -1,10 +1,10 @@
 'use client';
 
 import { FC, useState, useEffect } from 'react';
-import { Calendar, dateFnsLocalizer} from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import type { Event, View } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import type { withDragAndDropProps } from 'react-big-calendar/lib/addons/dragAndDrop';  
+import type { withDragAndDropProps } from 'react-big-calendar/lib/addons/dragAndDrop';
 import {
   format,
   parse,
@@ -16,6 +16,7 @@ import {
 import { enUS } from 'date-fns/locale';
 import { Loader } from 'lucide-react';
 import { holidays } from '@/data/mockData';
+import { useAuth } from '@/hooks/useAuth';
 
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -33,105 +34,129 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-const DnDCalendar = withDragAndDrop(Calendar);
 
 interface CalendarEvent extends Event {
+  id?: string;
   resource?: {
     type: 'leave' | 'wfh' | 'compoff' | 'holiday';
     id?: string;
     [key: string]: any;
   };
 }
+const DnDCalendar = withDragAndDrop<CalendarEvent>(Calendar);
 
 const Calender: FC = () => {
+  const { user } = useAuth();
+  const employeeId = user?.userId;
+
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>('month');
 
   // Fetch calendar data from all endpoints
   useEffect(() => {
+    if (!employeeId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchCalendarData = async () => {
       try {
         setLoading(true);
 
         const [leaveRes, wfhRes, compoffRes] = await Promise.all([
-          fetch('/api/timeOff/leave-request'),
-          fetch('/api/timeOff/wfh-request'),
-          fetch('/api/timeOff/comp-off'),
+          fetch(`/api/timeOff/leave-requests?employeeId=${encodeURIComponent(employeeId)}&status=APPROVED,PENDING,REJECTED`),
+          fetch(`/api/timeOff/wfh-request?employeeId=${encodeURIComponent(employeeId)}`),
+          fetch(`/api/timeOff/comp-off?employeeId=${encodeURIComponent(employeeId)}`),
         ]);
 
-        const leaveData = await leaveRes.json();
-        const wfhData = await wfhRes.json();
-        const compoffData = await compoffRes.json();
+        let leaveData = [];
+        let wfhData = [];
+        let compoffData = { data: [] };
+
+        if (leaveRes.ok) {
+          leaveData = await leaveRes.json().catch(() => []);
+        } else {
+          console.error('Failed to fetch leave requests:', leaveRes.status);
+        }
+
+        if (wfhRes.ok) {
+          wfhData = await wfhRes.json().catch(() => []);
+        } else {
+          console.error('Failed to fetch WFH requests:', wfhRes.status);
+        }
+
+        if (compoffRes.ok) {
+          compoffData = await compoffRes.json().catch(() => ({ data: [] }));
+        } else {
+          console.error('Failed to fetch comp off records:', compoffRes.status);
+        }
 
         // Transform and merge all events
         const allEvents: CalendarEvent[] = [];
 
         // Process leave requests - ONLY APPROVED
-        if (leaveData.data && Array.isArray(leaveData.data)) {
-          leaveData.data.forEach((item: any) => {
-            if (item.status === 'Approved') {
-              allEvents.push({
+        const leaveList = Array.isArray(leaveData) ? leaveData : (leaveData?.data && Array.isArray(leaveData.data) ? leaveData.data : []);
+        leaveList.forEach((item: any) => {
+          if (item.status?.toUpperCase() === 'APPROVED') {
+            allEvents.push({
+              id: item._id || item.id,
+              title: `Leave - ${item.leaveType || 'Time Off'}`,
+              start: new Date(item.startDate),
+              end: new Date(item.endDate),
+              resource: {
+                type: 'leave',
                 id: item._id || item.id,
-                title: `Leave - ${item.leaveType || 'Time Off'}`,
-                start: new Date(item.startDate),
-                end: new Date(item.endDate),
-                resource: {
-                  type: 'leave',
-                  id: item._id || item.id,
-                  leaveType: item.leaveType,
-                  status: item.status,
-                },
-              });
-            }
-          });
-        }
+                leaveType: item.leaveType,
+                status: item.status,
+              },
+            });
+          }
+        });
 
         // Process WFH requests - ONLY APPROVED
-        if (wfhData.data && Array.isArray(wfhData.data)) {
-          wfhData.data.forEach((item: any) => {
-            if (item.status === 'Approved') {
-              allEvents.push({
+        const wfhList = Array.isArray(wfhData) ? wfhData : (wfhData?.data && Array.isArray(wfhData.data) ? wfhData.data : []);
+        wfhList.forEach((item: any) => {
+          if (item.status?.toUpperCase() === 'APPROVED') {
+            allEvents.push({
+              id: item._id || item.id,
+              title: `WFH - Work From Home`,
+              start: new Date(item.startDate),
+              end: new Date(item.endDate),
+              resource: {
+                type: 'wfh',
                 id: item._id || item.id,
-                title: `WFH - Work From Home`,
-                start: new Date(item.startDate),
-                end: new Date(item.endDate),
-                resource: {
-                  type: 'wfh',
-                  id: item._id || item.id,
-                  status: item.status,
-                },
-              });
-            }
-          });
-        }
+                status: item.status,
+              },
+            });
+          }
+        });
 
         // Process Comp Off - ONLY AVAILABLE
-        if (compoffData.data && Array.isArray(compoffData.data)) {
-          compoffData.data.forEach((item: any) => {
-            if (item.status === 'Available') {
-              const startDate = typeof item.earnedOn === 'string' 
-                ? new Date(item.earnedOn) 
-                : item.earnedOn;
-              const endDate = typeof item.expiryDate === 'string'
-                ? new Date(item.expiryDate)
-                : item.expiryDate;
+        const compoffList = Array.isArray(compoffData) ? compoffData : (compoffData?.data && Array.isArray(compoffData.data) ? compoffData.data : []);
+        compoffList.forEach((item: any) => {
+          if (item.status?.toUpperCase() === 'AVAILABLE') {
+            const startDate = typeof item.earnedOn === 'string'
+              ? new Date(item.earnedOn)
+              : item.earnedOn;
+            const endDate = typeof item.expiryDate === 'string'
+              ? new Date(item.expiryDate)
+              : item.expiryDate;
 
-              allEvents.push({
+            allEvents.push({
+              id: item._id || item.compOffId,
+              title: `Comp Off - ${item.workType || 'Compensation'}`,
+              start: startDate,
+              end: endDate,
+              resource: {
+                type: 'compoff',
                 id: item._id || item.compOffId,
-                title: `Comp Off - ${item.workType || 'Compensation'}`,
-                start: startDate,
-                end: endDate,
-                resource: {
-                  type: 'compoff',
-                  id: item._id || item.compOffId,
-                  workType: item.workType,
-                  status: item.status,
-                },
-              });
-            }
-          });
-        }
+                workType: item.workType,
+                status: item.status,
+              },
+            });
+          }
+        });
 
         // Process Holidays from mock data
         if (Array.isArray(holidays)) {
@@ -220,53 +245,53 @@ const Calender: FC = () => {
 
   return (
     <>
-    
-    <div className="space-y-4">
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-500 rounded"></div>
-          <span className="text-sm text-slate-700">Leave (Approved)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500 rounded"></div>
-          <span className="text-sm text-slate-700">Work From Home (Approved)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-500 rounded"></div>
-          <span className="text-sm text-slate-700">Comp Off (Available)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-amber-500 rounded"></div>
-          <span className="text-sm text-slate-700">Holidays</span>
-        </div>
-      </div>
 
-      {/* Calendar */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-        <div className="p-4">
-          <DnDCalendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            style={{ height: 600 }}
-            view={view}
-            onView={setView}
-            defaultView="month"
-            views={['month', 'week', 'day', 'agenda']}
-            eventPropGetter={eventStyleGetter}
-            onSelectEvent={handleSelectEvent}
-            onEventDrop={onEventDrop}
-            onEventResize={onEventResize}
-            resizable
-            popup
-            selectable
-          />
+      <div className="space-y-4">
+        {/* Legend */}
+        <div className="flex flex-wrap gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-500 rounded"></div>
+            <span className="text-sm text-slate-700">Leave (Approved)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-500 rounded"></div>
+            <span className="text-sm text-slate-700">Work From Home (Approved)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-500 rounded"></div>
+            <span className="text-sm text-slate-700">Comp Off (Available)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-amber-500 rounded"></div>
+            <span className="text-sm text-slate-700">Holidays</span>
+          </div>
         </div>
-      </div>
 
-      <style jsx>{`
+        {/* Calendar */}
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+          <div className="p-4">
+            <DnDCalendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 600 }}
+              view={view}
+              onView={setView}
+              defaultView="month"
+              views={['month', 'week', 'day', 'agenda']}
+              eventPropGetter={eventStyleGetter}
+              onSelectEvent={handleSelectEvent}
+              onEventDrop={onEventDrop}
+              onEventResize={onEventResize}
+              resizable
+              popup
+              selectable
+            />
+          </div>
+        </div>
+
+        <style jsx>{`
         :global(.rbc-calendar) {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
@@ -364,7 +389,7 @@ const Calender: FC = () => {
           min-height: 60px;
         }
       `}</style>
-    </div>
+      </div>
     </>
   );
 }
