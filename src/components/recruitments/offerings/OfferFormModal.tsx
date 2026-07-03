@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal-copy";
 import { candidates } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 import { Calculator } from "lucide-react";

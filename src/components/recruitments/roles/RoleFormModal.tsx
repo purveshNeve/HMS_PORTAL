@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,9 +16,9 @@ const roleSchema = z.object({
   experience: z.string().min(1, "Required experience is required"),
   skills: z.string().min(1, "List at least one skill"),
   employmentType: z.enum(["Full-Time", "Part-Time", "Contract", "Internship"]),
-  openings: z.coerce.number().min(1, "At least 1 opening required").max(50),
-  salaryMin: z.coerce.number().min(1, "Minimum salary required"),
-  salaryMax: z.coerce.number().min(1, "Maximum salary required"),
+  openings: z.number().int("Openings must be a whole number").min(1, "At least 1 opening required").max(50, "Maximum 50 openings"),
+  salaryMin: z.number().positive("Salary must be positive"),
+  salaryMax: z.number().positive("Salary must be positive"),
   location: z.string().min(2, "Location is required"),
   remote: z.boolean(),
   priority: z.enum(["Critical", "High", "Medium", "Low"]),
@@ -200,13 +200,13 @@ export function RoleFormModal({
             </select>
           </Field>
           <Field label="Number of Openings" error={errors.openings?.message}>
-            <input type="number" min={1} {...register("openings")} className="input" />
+            <input type="number" min={1} {...register("openings", { valueAsNumber: true })} className="input" />
           </Field>
           <Field label="Minimum Salary (₹ Lakhs / yr)" error={errors.salaryMin?.message}>
-            <input type="number" {...register("salaryMin")} className="input" />
+            <input type="number" {...register("salaryMin", { valueAsNumber: true })} className="input" />
           </Field>
           <Field label="Maximum Salary (₹ Lakhs / yr)" error={errors.salaryMax?.message}>
-            <input type="number" {...register("salaryMax")} className="input" />
+            <input type="number" {...register("salaryMax", { valueAsNumber: true })} className="input" />
           </Field>
           <Field label="Location" error={errors.location?.message}>
             <input {...register("location")} className="input" placeholder="e.g. Mumbai, IN" />
@@ -242,7 +242,7 @@ export function RoleFormModal({
         </div>
       </form>
 
-      <style jsx global>{`
+      <style>{`
         .input {
           width: 100%;
           border-radius: 0.75rem;
@@ -274,7 +274,7 @@ function Field({
 }: {
   label: string;
   error?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   full?: boolean;
 }) {
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal-copy";
 import { Candidate } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 

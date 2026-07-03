@@ -1,7 +1,7 @@
 "use client";
 
 import { offerStats, offerAcceptance } from "@/lib/mock-data";
-import { OfferAcceptanceChart } from "@/components/dashboard/OfferAcceptanceChart";
+import { OfferAcceptanceChart } from "@/components/recruitments/dashboard/OfferAcceptanceChart";
 import { TrendingUp, Clock3, HandCoins, CheckCircle } from "lucide-react";
 
 const metrics = [
