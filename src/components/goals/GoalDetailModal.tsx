@@ -1,15 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import Modal from "@/components/ui/Modal";
 import ProgressBar from "@/components/ui/ProgressBar";
 import { Badge } from "@/components/ui/Badge";
 import {
   Goal, STATUS_LABELS, STATUS_COLORS, PRIORITY_COLORS, CATEGORY_LABELS,
-  GoalMilestone,
+  GoalMilestone, GoalComment,
 } from "@/lib/goals.types";
 import {
-  CheckCircle2, Circle, Plus, Send, Trash2, CalendarDays, Tag,
+  displayCommentAuthor,
+  useGoalComments,
+} from "@/lib/goalComments/goalCommentsClient";
+import type { GoalCommentRole } from "@/lib/goalComments/goalComments.types";
+import {
+  CheckCircle2, Circle, Plus, Send, Trash2, CalendarDays, Tag, Wifi, WifiOff,
 } from "lucide-react";
 
 interface GoalDetailModalProps {
@@ -19,8 +25,14 @@ interface GoalDetailModalProps {
   onToggleMilestone: (goalId: string, milestoneId: string) => void;
   onAddMilestone: (goalId: string, milestone: Omit<GoalMilestone, "id">) => void;
   onDeleteMilestone: (goalId: string, milestoneId: string) => void;
-  onAddComment: (goalId: string, text: string) => void;
+  onAddComment: (goalId: string, comment: GoalComment) => void;
   onUpdateProgress: (goalId: string, progress: number) => void;
+  /** When true the progress slider is read-only (manager view) */
+  readOnlyProgress?: boolean;
+  /** When true the "Add milestone" button/form is shown (manager only) */
+  canAddMilestone?: boolean;
+  /** When true milestone checkboxes are interactive (employee only) */
+  canToggleMilestone?: boolean;
 }
 
 function formatDate(d: string) {
@@ -32,10 +44,15 @@ function formatDate(d: string) {
 const inputClass =
   "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
 
+const EMPTY_COMMENTS: GoalComment[] = [];
+
 export default function GoalDetailModal({
   goal, open, onClose,
   onToggleMilestone, onAddMilestone, onDeleteMilestone,
   onAddComment, onUpdateProgress,
+  readOnlyProgress = false,
+  canAddMilestone = false,
+  canToggleMilestone = true,
 }: GoalDetailModalProps) {
   const [tab, setTab] = useState<"overview" | "milestones" | "comments">("overview");
   const [commentText, setCommentText] = useState("");
@@ -43,12 +60,33 @@ export default function GoalDetailModal({
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [progress, setProgress] = useState(goal?.progress ?? 0);
 
+  const { data: session } = useSession();
+  const userRole = (session?.user?.role ?? "employee") as GoalCommentRole;
+  const userId = session?.user?.userId ?? "";
+  const userName = session?.user?.name ?? (userRole === "manager" ? "Manager" : "Employee");
+
+  const { comments, sendComment, connected, sending } = useGoalComments({
+    goalId: goal?.id ?? null,
+    open,
+    initialComments: goal?.comments ?? EMPTY_COMMENTS,
+    userRole,
+    userId,
+    userName,
+    onCommentAdded: (comment) => {
+      if (goal) onAddComment(goal.id, comment);
+    },
+  });
+
   if (!goal) return null;
 
-  const handleAddComment = () => {
-    if (!commentText.trim()) return;
-    onAddComment(goal.id, commentText.trim());
-    setCommentText("");
+  const handleAddComment = async () => {
+    if (!commentText.trim() || sending) return;
+    try {
+      await sendComment(commentText.trim());
+      setCommentText("");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not send comment");
+    }
   };
 
   const handleAddMilestone = () => {
@@ -67,7 +105,7 @@ export default function GoalDetailModal({
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: `Milestones (${goal.milestones.length})` },
-    { id: "comments", label: `Comments (${goal.comments.length})` },
+    { id: "comments", label: `Comments (${comments.length})` },
   ] as const;
 
   return (
@@ -92,11 +130,10 @@ export default function GoalDetailModal({
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`text-sm px-4 py-2 font-medium border-b-2 transition -mb-px ${
-              tab === t.id
+            className={`text-sm px-4 py-2 font-medium border-b-2 transition -mb-px ${tab === t.id
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-gray-500 hover:text-gray-900"
-            }`}
+              }`}
           >
             {t.label}
           </button>
@@ -129,23 +166,39 @@ export default function GoalDetailModal({
           {/* Progress updater */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Progress</p>
-            <div className="flex items-center gap-3 mb-2">
-              <input
-                type="range" min={0} max={100} step={5}
-                value={progress}
-                onChange={(e) => setProgress(Number(e.target.value))}
-                className="flex-1 accent-blue-600"
-              />
-              <span className="text-sm font-semibold text-gray-700 w-10 text-right">{progress}%</span>
-            </div>
-            <ProgressBar value={progress} status={goal.status} showLabel={false} height="h-3" />
-            {progress !== goal.progress && (
-              <button
-                onClick={handleProgressSave}
-                className="mt-2 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition"
-              >
-                Save progress
-              </button>
+            {readOnlyProgress ? (
+              /* Manager view: read-only */
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-3 bg-blue-500 rounded-full transition-all"
+                    style={{ width: `${goal.progress}%` }}
+                  />
+                </div>
+                <span className="text-sm font-semibold text-gray-700 w-10 text-right">{goal.progress}%</span>
+              </div>
+            ) : (
+              /* Employee view: editable */
+              <>
+                <div className="flex items-center gap-3 mb-2">
+                  <input
+                    type="range" min={0} max={100} step={5}
+                    value={progress}
+                    onChange={(e) => setProgress(Number(e.target.value))}
+                    className="flex-1 accent-blue-600"
+                  />
+                  <span className="text-sm font-semibold text-gray-700 w-10 text-right">{progress}%</span>
+                </div>
+                <ProgressBar value={progress} status={goal.status} showLabel={false} height="h-3" />
+                {progress !== goal.progress && (
+                  <button
+                    onClick={handleProgressSave}
+                    className="mt-2 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Save progress
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -187,32 +240,46 @@ export default function GoalDetailModal({
       {tab === "milestones" && (
         <div className="space-y-3">
           {goal.milestones.length === 0 && !showMilestoneForm && (
-            <p className="text-sm text-gray-400 text-center py-6">No milestones yet. Add one below.</p>
+            <p className="text-sm text-gray-400 text-center py-6">
+              {canAddMilestone
+                ? "No milestones yet. Add one below."
+                : "No milestones have been added yet."}
+            </p>
           )}
 
           {goal.milestones.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition group">
-              <button onClick={() => onToggleMilestone(goal.id, m.id)} className="flex-shrink-0">
-                {m.completed
-                  ? <CheckCircle2 size={18} className="text-green-500" />
-                  : <Circle size={18} className="text-gray-300" />}
-              </button>
+            <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition">
+              {/* Toggle: clickable for employee, static icon for manager */}
+              {canToggleMilestone ? (
+                <button
+                  onClick={() => onToggleMilestone(goal.id, m.id)}
+                  className="flex-shrink-0"
+                  title="Mark complete"
+                >
+                  {m.completed
+                    ? <CheckCircle2 size={18} className="text-green-500" />
+                    : <Circle size={18} className="text-gray-300" />}
+                </button>
+              ) : (
+                <span className="flex-shrink-0">
+                  {m.completed
+                    ? <CheckCircle2 size={18} className="text-green-500" />
+                    : <Circle size={18} className="text-gray-300" />}
+                </span>
+              )}
+
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium ${m.completed ? "line-through text-gray-400" : "text-gray-800"}`}>
                   {m.title}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">Due {formatDate(m.dueDate)}</p>
               </div>
-              <button
-                onClick={() => onDeleteMilestone(goal.id, m.id)}
-                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition"
-              >
-                <Trash2 size={13} />
-              </button>
+              {/* Delete button hidden for both roles — no one can delete after creation */}
             </div>
           ))}
 
-          {showMilestoneForm && (
+          {/* Add milestone form — manager only */}
+          {canAddMilestone && showMilestoneForm && (
             <div className="border border-blue-200 rounded-lg p-4 bg-blue-50 space-y-3">
               <input
                 className={inputClass}
@@ -242,8 +309,8 @@ export default function GoalDetailModal({
               </div>
             </div>
           )}
-
-          {!showMilestoneForm && (
+          {/* Add milestone button — manager only, not while form is open */}
+          {canAddMilestone && !showMilestoneForm && (
             <button
               onClick={() => setShowMilestoneForm(true)}
               className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition font-medium"
@@ -257,21 +324,37 @@ export default function GoalDetailModal({
       {/* Comments tab */}
       {tab === "comments" && (
         <div className="space-y-4">
-          {goal.comments.length === 0 && (
+          <div className="flex items-center justify-end gap-1.5 text-xs text-gray-400">
+            {connected ? (
+              <>
+                <Wifi size={12} className="text-green-500" />
+                <span>Live</span>
+              </>
+            ) : (
+              <>
+                <WifiOff size={12} />
+                <span>Offline — using HTTP fallback</span>
+              </>
+            )}
+          </div>
+
+          {comments.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-4">No comments yet.</p>
           )}
           <div className="space-y-3">
-            {goal.comments.map((c) => (
-              <div key={c.id} className={`rounded-lg px-4 py-3 text-sm ${
-                c.author === "You" ? "bg-blue-50 ml-8" : "bg-gray-50 mr-8"
-              }`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-gray-600">{c.author}</span>
-                  <span className="text-xs text-gray-400">{formatDate(c.date)}</span>
+            {comments.map((c) => {
+              const authorLabel = displayCommentAuthor(c, userRole);
+              return (
+                <div key={c.id} className={`rounded-lg px-4 py-3 text-sm ${authorLabel === "You" ? "bg-blue-50 ml-8" : "bg-gray-50 mr-8"
+                  }`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-gray-600">{authorLabel}</span>
+                    <span className="text-xs text-gray-400">{formatDate(c.date)}</span>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">{c.text}</p>
                 </div>
-                <p className="text-gray-700 leading-relaxed">{c.text}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="flex gap-2 pt-2 border-t border-gray-100">
             <input
@@ -279,11 +362,13 @@ export default function GoalDetailModal({
               placeholder="Write a comment…"
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+              onKeyDown={(e) => e.key === "Enter" && !sending && handleAddComment()}
+              disabled={sending}
             />
             <button
               onClick={handleAddComment}
-              className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition flex-shrink-0"
+              disabled={sending || !commentText.trim()}
+              className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition flex-shrink-0 disabled:opacity-50"
             >
               <Send size={15} />
             </button>

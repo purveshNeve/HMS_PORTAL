@@ -8,7 +8,7 @@ import { RoleCard } from "@/components/recruitments/roles/RoleCard";
 import { RoleTable } from "@/components/recruitments/roles/RoleTable";
 import { RoleFormModal, RoleFormValues } from "@/components/recruitments/roles/RoleFormModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { EmptyState } from "@/components/ui/EmptyState";
+import EmptyState from "@/components/ui/EmptyState";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { jobRoles as initialRoles, avatar } from "@/lib/mock-data";
 import { JobRole } from "@/lib/types";

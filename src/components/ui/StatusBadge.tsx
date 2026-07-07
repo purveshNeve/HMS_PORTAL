@@ -35,7 +35,7 @@ const colorMap: Record<string, string> = {
   Low: "bg-ink-100 text-ink-500 dark:bg-ink-700 dark:text-ink-300",
 };
 
-export function StatusBadge({ status, className }: { status: string; className?: string }) {
+export default function StatusBadge({ status, className }: { status: string; className?: string }) {
   return (
     <span className={cn("chip", colorMap[status] ?? "bg-ink-100 text-ink-600", className)}>
       <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />

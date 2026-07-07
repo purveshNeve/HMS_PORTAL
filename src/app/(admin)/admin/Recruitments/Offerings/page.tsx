@@ -9,7 +9,7 @@ import { OfferCard } from "@/components/recruitments/offerings/OfferCard";
 import { OfferFormModal, OfferFormValues } from "@/components/recruitments/offerings/OfferFormModal";
 import { OfferAnalytics } from "@/components/recruitments/offerings/OfferAnalytics";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { EmptyState } from "@/components/ui/EmptyState";
+import EmptyState from "@/components/ui/EmptyState";
 import { offers as initialOffers, candidates, avatar } from "@/lib/mock-data";
 import { Offer } from "@/lib/types";
 import { exportToPdf, generateOfferLetterPdf } from "@/lib/export";

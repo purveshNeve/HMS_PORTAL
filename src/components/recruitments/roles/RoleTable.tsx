@@ -2,7 +2,7 @@
 
 import { Pencil, Copy, Archive, Lock, Trash2 } from "lucide-react";
 import { JobRole } from "@/lib/types";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import StatusBadge from "@/components/ui/StatusBadge";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { formatCurrency } from "@/lib/utils";
 

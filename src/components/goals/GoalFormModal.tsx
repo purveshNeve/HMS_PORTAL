@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
@@ -10,7 +10,8 @@ import {
 interface GoalFormModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Omit<Goal, "id" | "comments" | "milestones">) => void;
+  /** Called after the API responds with the created/updated goal */
+  onSave: (goal: Goal) => void;
   initial?: Goal | null;
 }
 
@@ -20,6 +21,7 @@ const inputClass =
 const BLANK = {
   title: "",
   description: "",
+  assignedTo: "",
   category: "performance" as GoalCategory,
   status: "not_started" as GoalStatus,
   priority: "medium" as GoalPriority,
@@ -27,19 +29,22 @@ const BLANK = {
   startDate: new Date().toISOString().split("T")[0],
   dueDate: "",
   tags: [] as string[],
-  managerApproved: false,
+  managerApproved: true,
 };
 
 export default function GoalFormModal({ open, onClose, onSave, initial }: GoalFormModalProps) {
   const [form, setForm] = useState(BLANK);
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   useEffect(() => {
     if (initial) {
       setForm({
         title: initial.title,
         description: initial.description,
+        assignedTo: (initial as Goal & { assignedTo?: string }).assignedTo ?? "",
         category: initial.category,
         status: initial.status,
         priority: initial.priority,
@@ -54,6 +59,7 @@ export default function GoalFormModal({ open, onClose, onSave, initial }: GoalFo
     }
     setErrors({});
     setTagInput("");
+    setApiError("");
   }, [initial, open]);
 
   function set(key: string, value: unknown) {
@@ -64,6 +70,7 @@ export default function GoalFormModal({ open, onClose, onSave, initial }: GoalFo
   function validate() {
     const e: Record<string, string> = {};
     if (!form.title.trim()) e.title = "Title is required";
+    if (!form.assignedTo.trim()) e.assignedTo = "Employee ID is required";
     if (!form.dueDate) e.dueDate = "Due date is required";
     if (form.startDate && form.dueDate && form.startDate > form.dueDate)
       e.dueDate = "Due date must be after start date";
@@ -71,10 +78,32 @@ export default function GoalFormModal({ open, onClose, onSave, initial }: GoalFo
     return Object.keys(e).length === 0;
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!validate()) return;
-    onSave(form);
-    onClose();
+    setSaving(true);
+    setApiError("");
+    try {
+      const res = await fetch("/api/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to create goal");
+      // Normalise _id → id for the frontend Goal type
+      const created: Goal = {
+        ...data.goal,
+        id: data.goal._id,
+        milestones: data.goal.milestones ?? [],
+        comments: data.goal.comments ?? [],
+      };
+      onSave(created);
+      onClose();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function addTag() {
@@ -90,6 +119,13 @@ export default function GoalFormModal({ open, onClose, onSave, initial }: GoalFo
   return (
     <Modal open={open} onClose={onClose} title={initial ? "Edit Goal" : "Add New Goal"} size="lg">
       <div className="space-y-4">
+        {/* API error */}
+        {apiError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600">
+            {apiError}
+          </div>
+        )}
+
         {/* Title */}
         <div>
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
@@ -116,6 +152,20 @@ export default function GoalFormModal({ open, onClose, onSave, initial }: GoalFo
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
           />
+        </div>
+
+        {/* Assign to */}
+        <div>
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1.5">
+            Assign To (Employee ID) *
+          </label>
+          <input
+            className={inputClass}
+            placeholder="e.g. EMP001"
+            value={form.assignedTo}
+            onChange={(e) => set("assignedTo", e.target.value)}
+          />
+          {errors.assignedTo && <p className="text-xs text-red-500 mt-1">{errors.assignedTo}</p>}
         </div>
 
         {/* Category + Priority */}
@@ -241,15 +291,24 @@ export default function GoalFormModal({ open, onClose, onSave, initial }: GoalFo
         <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 mt-2">
           <button
             onClick={onClose}
-            className="text-sm border border-gray-200 px-5 py-2 rounded-lg hover:bg-gray-50 transition"
+            disabled={saving}
+            className="text-sm border border-gray-200 px-5 py-2 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="text-sm bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition"
+            disabled={saving}
+            className="text-sm bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-2"
           >
-            {initial ? "Save changes" : "Create goal"}
+            {saving ? (
+              <>
+                <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                Saving…
+              </>
+            ) : (
+              initial ? "Save changes" : "Create goal"
+            )}
           </button>
         </div>
       </div>

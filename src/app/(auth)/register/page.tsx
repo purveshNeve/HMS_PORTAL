@@ -98,7 +98,7 @@ export default function RegisterPage() {
             <div className="flex gap-4">
               <Button
                 type="button"
-                variant={role === "EMPLOYEE" ? "primary" : "secondary"}
+                variant={role === "EMPLOYEE" ? "default" : "secondary"}
                 onClick={() => setRole("EMPLOYEE")}
                 className="flex-1"
               >
@@ -106,7 +106,7 @@ export default function RegisterPage() {
               </Button>
               <Button
                 type="button"
-                variant={role === "MANAGER" ? "primary" : "secondary"}
+                variant={role === "MANAGER" ? "default" : "secondary"}
                 onClick={() => setRole("MANAGER")}
                 className="flex-1"
               >

@@ -12,6 +12,8 @@ export interface GoalMilestone {
 export interface GoalComment {
   id: string;
   author: string;
+  /** Used for real-time comment display ("You" vs "Manager"/"Employee") */
+  authorRole?: "manager" | "employee";
   text: string;
   date: string;
 }
@@ -30,6 +32,10 @@ export interface Goal {
   comments: GoalComment[];
   tags: string[];
   managerApproved: boolean;
+  /** Employee userId this goal is assigned to */
+  assignedTo?: string;
+  /** Manager userId who created the goal */
+  createdBy?: string;
 }
 
 export const STATUS_LABELS: Record<GoalStatus, string> = {

@@ -9,7 +9,7 @@ import { KanbanBoard } from "@/components/recruitments/applications/KanbanBoard"
 import { CandidateTable } from "@/components/recruitments/applications/CandidateTable";
 import { CandidateDrawer } from "@/components/recruitments/applications/CandidateDrawer";
 import { CandidateComparisonModal } from "@/components/recruitments/applications/CandidateComparisonModal";
-import { EmptyState } from "@/components/ui/EmptyState";
+import EmptyState from "@/components/ui/EmptyState";
 import { candidates as initialCandidates } from "@/lib/mock-data";
 import { Candidate, PipelineStage } from "@/lib/types";
 import { cn } from "@/lib/utils";

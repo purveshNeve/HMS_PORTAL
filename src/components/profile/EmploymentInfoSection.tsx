@@ -147,7 +147,7 @@ export default function EmploymentInfoSection({
             {/* Manager */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Manager
+                Manager ID
               </label>
               <input
                 type="text"

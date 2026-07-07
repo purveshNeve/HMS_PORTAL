@@ -1,6 +1,6 @@
 import { LucideIcon } from "lucide-react";
 
-export function EmptyState({
+export default function EmptyState({
   icon: Icon,
   title,
   description,

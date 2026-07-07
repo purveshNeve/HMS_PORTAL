@@ -17,7 +17,7 @@ import {
   MessageSquarePlus,
 } from "lucide-react";
 import { Candidate, PipelineStage } from "@/lib/types";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import StatusBadge from "@/components/ui/StatusBadge";
 
 const stages: PipelineStage[] = [
   "Applied", "Screening", "Shortlisted", "Interview Scheduled", "Technical Round",

@@ -3,13 +3,13 @@
 import { Goal, STATUS_LABELS, STATUS_COLORS, PRIORITY_COLORS, CATEGORY_LABELS } from "@/lib/goals.types";
 import { Badge } from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
-import { CheckCircle2, AlertCircle, Trash2, Pencil, MessageSquare, Target } from "lucide-react";
+import { CheckCircle2, AlertCircle, Trash2, Pencil, MessageSquare, Target, User } from "lucide-react";
 
 interface GoalCardProps {
   goal: Goal;
   onView: (goal: Goal) => void;
-  onEdit: (goal: Goal) => void;
-  onDelete: (id: string) => void;
+  onEdit: ((goal: Goal) => void) | null;
+  onDelete: ((id: string) => void) | null;
 }
 
 function formatDate(d: string) {
@@ -45,28 +45,44 @@ export default function GoalCard({ goal, onView, onEdit, onDelete }: GoalCardPro
             <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors">
               {goal.title}
             </h3>
-            <p className="text-xs text-gray-400 mt-0.5">{CATEGORY_LABELS[goal.category]}</p>
+            <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span>{CATEGORY_LABELS[goal.category]}</span>
+              {goal.assignedTo && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-gray-500" title="Assigned Employee ID">
+                    <User size={12} /> {goal.assignedTo}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div
-          className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => onEdit(goal)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
+        {/* Actions — only shown when handlers are provided */}
+        {(onEdit || onDelete) && (
+          <div
+            className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Pencil size={13} />
-          </button>
-          <button
-            onClick={() => onDelete(goal.id)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
+            {onEdit && (
+              <button
+                onClick={() => onEdit(goal)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition"
+              >
+                <Pencil size={13} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(goal.id)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Badges */}

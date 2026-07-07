@@ -1,7 +1,7 @@
 "use client";
 
 import { Candidate } from "@/lib/types";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import StatusBadge from "@/components/ui/StatusBadge";
 import { Star } from "lucide-react";
 
 export function CandidateTable({

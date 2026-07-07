@@ -232,7 +232,7 @@ export default function EmployeeDashboardPage() {
                 </div>
               </div>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Button variant="primary" className="flex-1">Check In</Button>
+                <Button variant="default" className="flex-1">Check In</Button>
                 <Button variant="destructive" className="flex-1">Check Out</Button>
               </div>
             </CardContent>

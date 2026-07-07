@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import CareerDevelopmentTabs from "@/components/CareerDevelopmentTabs";
 
-export default function CulturalPage() {
-  redirect("/admin/Cultural/dashboard");
+export default function Page() {
+  return <CareerDevelopmentTabs />;
 }

@@ -97,11 +97,29 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+
+    // Manager Recommendations
+    managerRecommendations: [
+      {
+        managerName: { type: String, required: true },
+        role: { type: String, required: true },
+        comment: { type: String, required: true },
+        date: { type: Date, default: Date.now },
+      },
+    ],
+    enrolledCourses: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
   }
 );
 
-export default mongoose.models.User ||
-  mongoose.model("User", UserSchema);
+// Clear cache for HMR
+if (process.env.NODE_ENV !== "production") {
+  delete mongoose.models.User;
+}
+
+export default mongoose.models.User || mongoose.model("User", UserSchema);

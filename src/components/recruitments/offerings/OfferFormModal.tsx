@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,6 +8,14 @@ import { Modal } from "@/components/ui/Modal-copy";
 import { candidates } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
 import { Calculator } from "lucide-react";
+
+type OfferFormValues = {
+  candidateId: string;
+  ctc: number;
+  joiningBonus: number;
+  joiningDate: string;
+  benefitsPct: number;
+};
 
 const offerSchema = z.object({
   candidateId: z.string().min(1, "Select a candidate"),
@@ -17,7 +25,7 @@ const offerSchema = z.object({
   benefitsPct: z.coerce.number().min(0).max(40),
 });
 
-export type OfferFormValues = z.infer<typeof offerSchema>;
+export type { OfferFormValues };
 
 export function OfferFormModal({
   open,
@@ -35,7 +43,7 @@ export function OfferFormModal({
     reset,
     formState: { errors },
   } = useForm<OfferFormValues>({
-    resolver: zodResolver(offerSchema),
+    resolver: zodResolver(offerSchema) as any,
     defaultValues: { candidateId: "", ctc: 15, joiningBonus: 1, joiningDate: "", benefitsPct: 12 },
   });
 

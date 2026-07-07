@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { FileDown, Send, Ban, CalendarClock, RotateCcw, FileSignature } from "lucide-react";
 import { Offer } from "@/lib/types";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import StatusBadge from "@/components/ui/StatusBadge";
 import { ActionMenu } from "@/components/ui/ActionMenu";
 import { OfferStatusTimeline } from "./OfferStatusTimeline";
 import { formatCurrency, cn } from "@/lib/utils";
