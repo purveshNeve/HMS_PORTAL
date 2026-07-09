@@ -134,7 +134,7 @@ export default function CertificateFormDrawer({
         {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
       </SelectField>
 
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <FieldLabel>Upload Certificate</FieldLabel>
         <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-line bg-paper/50 px-3 py-3 text-xs text-muted transition-colors hover:border-indigoink hover:text-indigoink">
           <UploadCloud className="h-4 w-4" />
@@ -149,10 +149,7 @@ export default function CertificateFormDrawer({
             }}
           />
         </label>
-        <p className="mt-1.5 text-[10.5px] text-muted/70">
-          Demo only — the file stays on your device and is never uploaded anywhere.
-        </p>
-      </div>
+      </div> */}
 
       <div className="mt-6 flex justify-end gap-2.5">
         <button

@@ -70,11 +70,11 @@ export default function LeaveApprovalCards() {
       // Fetch WFH requests
       const wfhUrl = `/api/timeOff/wfh-request?managerId=${encodeURIComponent(managerId)}&status=PENDING`;
       const wfhRes = await fetch(wfhUrl);
-      if (!wfhRes.ok) {
-        const body = await wfhRes.json().catch(() => null);
+      const wfhData = await wfhRes.json().catch(() => null) as LeaveApprovalRequest[] | null;
+      if (!wfhRes.ok || !wfhData) {
+        const body = wfhData as any;
         throw new Error(body?.error || 'Failed to load WFH requests');
       }
-      const wfhData = (await wfhRes.json()) as LeaveApprovalRequest[];
       const normalizedWfhRequests = wfhData
         .map(req => ({
           ...req,
@@ -113,6 +113,19 @@ export default function LeaveApprovalCards() {
       fetchRequests();
     }
   }, [fetchRequests, managerId, isManager]);
+
+  useEffect(() => {
+    if (!isManager) return;
+    const refreshRequests = () => fetchRequests();
+    window.addEventListener('compoff-request-updated', refreshRequests);
+    window.addEventListener('leave-request-updated', refreshRequests);
+    window.addEventListener('wfh-request-updated', refreshRequests);
+    return () => {
+      window.removeEventListener('compoff-request-updated', refreshRequests);
+      window.removeEventListener('leave-request-updated', refreshRequests);
+      window.removeEventListener('wfh-request-updated', refreshRequests);
+    };
+  }, [fetchRequests, isManager]);
 
   const submitWfhDecision = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
     if (!managerId) return;

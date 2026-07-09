@@ -7,8 +7,6 @@ const managerNav: NavItem[] = [
   { label: "Dashboard", href: "/manager/dashboard" },
   { label: "My Team", href: "/manager/team" },
   { label: "Approvals", href: "/manager/approvals" },
-  { label: "Performance", href: "/manager/performance" },
-  { label: "Time Off", href: "/manager/timeOff" },
 ];
 
 export default function ManagerLayout({ children }: { children: ReactNode }) {

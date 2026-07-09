@@ -55,7 +55,6 @@ export async function POST(req: Request) {
       employeeName,
       department,
       managerId,
-      managerName,
       workDate,
       workType,
       hoursWorked,
@@ -68,7 +67,6 @@ export async function POST(req: Request) {
       !employeeName ||
       !department ||
       !managerId ||
-      !managerName ||
       !workDate ||
       !workType ||
       hoursWorked === undefined ||

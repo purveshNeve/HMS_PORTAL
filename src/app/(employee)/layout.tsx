@@ -9,7 +9,6 @@ const employeeNav: NavItem[] = [
   { label: "Pay & Benefits", href: "/employee/PayAndBenefit" },
   {label: "Profile" , href: "/employee/Profile"},
   { label: "Time Off", href: "/employee/timeOff" },
-  { label: "Feedback", href: "/employee/feedback" }
 ];
 
 export default function EmployeeLayout({ children }: { children: ReactNode }) {

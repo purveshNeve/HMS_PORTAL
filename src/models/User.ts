@@ -107,6 +107,10 @@ const UserSchema = new mongoose.Schema(
         date: { type: Date, default: Date.now },
       },
     ],
+    enrolledCertificates: {
+      type: [String],
+      default: [],
+    },
     enrolledCourses: {
       type: [String],
       default: [],

@@ -8,7 +8,6 @@ import {
   developmentStrengths,
   developmentGaps,
   recommendations,
-  certifications,
   managerComments,
 } from "@/data/mockDataFeedback";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -64,6 +63,9 @@ export function DevelopmentTab() {
   const [adminCourses, setAdminCourses] = useState<any[]>([]);
   const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
+  const [certifications, setCertifications] = useState<any[]>([]);
+  const [enrollingCertId, setEnrollingCertId] = useState<string | null>(null);
+  const [enrolledCertIds, setEnrolledCertIds] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchRecs = async () => {
@@ -92,9 +94,123 @@ export function DevelopmentTab() {
       }
     };
 
+    const fetchCertifications = async () => {
+      try {
+        const res = await fetch("/api/certificates");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.certificates)) {
+            const mappedCertificates = data.certificates.map((cert: any) => ({
+              id: cert.certificateId,
+              name: cert.certificateName,
+              issuer: cert.issuer,
+              issuedDate: cert.issueDate,
+              status: cert.status,
+              enrolledUsers: cert.enrolledUsers || [],
+              enrolledUserIds: cert.enrolledUserIds || [],
+            }));
+            setCertifications(mappedCertificates);
+            if (userId) {
+              setEnrolledCertIds(
+                mappedCertificates
+                  .filter((cert: any) => cert.enrolledUserIds?.includes(userId))
+                  .map((cert: any) => cert.id)
+              );
+            }
+          }
+        } else {
+          console.error("Failed to fetch certifications", await res.text());
+        }
+      } catch (err) {
+        console.error("Failed to fetch certifications:", err);
+      }
+    };
+
     fetchRecs();
     fetchCourses();
-  }, []);
+    fetchCertifications();
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    setEnrolledCertIds(
+      certifications
+        .filter((cert) => cert.enrolledUserIds?.includes(userId))
+        .map((cert) => cert.id)
+    );
+  }, [userId, certifications]);
+
+  const handleCertificateEnroll = async (certificate: any) => {
+    const certificateId = certificate?.id;
+    if (!certificateId) return;
+
+    if (!userId) {
+      toast("Please sign in to enroll in a certificate.", "warning");
+      return;
+    }
+
+    const alreadyEnrolled =
+      (certificate?.enrolledUserIds || []).includes(userId) ||
+      enrolledCertIds.includes(certificateId);
+    if (alreadyEnrolled) {
+      toast("You are already enrolled in this certificate.", "info");
+      return;
+    }
+
+    setEnrollingCertId(certificateId);
+
+    try {
+      const url = `/api/certificates/${encodeURIComponent(certificateId)}`;
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "enroll",
+          userId,
+          user: {
+            userId,
+            name: user?.name || "",
+            email: user?.email || "",
+            department: user?.department || "",
+          },
+        }),
+      });
+
+      const rawResponse = await res.text();
+      let result: any = {};
+      try {
+        result = rawResponse ? JSON.parse(rawResponse) : {};
+      } catch (parseError) {
+        throw new Error(`Server returned invalid JSON: ${rawResponse}`);
+      }
+
+      if (!res.ok) {
+        throw new Error(result.message || `Failed to enroll in certificate (${res.status})`);
+      }
+
+      const updatedCertificate = result.certificate || certificate;
+      setCertifications((prev) =>
+        prev.map((item) =>
+          item.id === certificateId
+            ? {
+                ...item,
+                ...(updatedCertificate || {}),
+                enrolledUsers: updatedCertificate.enrolledUsers || item.enrolledUsers || [],
+                enrolledUserIds: updatedCertificate.enrolledUserIds || item.enrolledUserIds || [],
+              }
+            : item
+        )
+      );
+      setEnrolledCertIds((prev) => (prev.includes(certificateId) ? prev : [...prev, certificateId]));
+
+      toast(`Enrolled in ${certificate.name}.`, "success");
+    } catch (err) {
+      console.error(err);
+      toast(err instanceof Error ? err.message : "Failed to enroll in certificate", "warning");
+    } finally {
+      setEnrollingCertId(null);
+    }
+  };
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -313,6 +429,7 @@ export function DevelopmentTab() {
                   <th className="px-3 py-2 font-medium text-ink-muted text-xs uppercase tracking-wide">Certification</th>
                   <th className="px-3 py-2 font-medium text-ink-muted text-xs uppercase tracking-wide">Issued</th>
                   <th className="px-3 py-2 font-medium text-ink-muted text-xs uppercase tracking-wide">Status</th>
+                  <th className="px-3 py-2 font-medium text-ink-muted text-xs uppercase tracking-wide">Enrollement</th>
                 </tr>
               </thead>
               <tbody>
@@ -324,7 +441,32 @@ export function DevelopmentTab() {
                     </td>
                     <td className="px-3 py-2.5 text-ink-muted whitespace-nowrap">{c.issuedDate}</td>
                     <td className="px-3 py-2.5">
-                      <span className="text-success-600 text-xs font-medium">{c.status}</span>
+                      <div className="space-y-1">
+                        <span className="text-success-600 text-xs font-medium">{c.status}</span>
+                        <span className="text-ink-faint text-[11px]">
+                          {((c.enrolledUserIds || []).length || 0) === 1
+                            ? "1 enrolled"
+                            : `${(c.enrolledUserIds || []).length || 0} enrolled`}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {(c.enrolledUserIds || []).includes(userId) || enrolledCertIds.includes(c.id) ? (
+                        <span className="inline-flex items-center rounded-full bg-surface-subtle px-2 py-1 text-[11px] font-semibold text-ink-muted">
+                          Enrolled
+                        </span>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCertificateEnroll(c)}
+                          disabled={enrollingCertId === c.id}
+                          className="rounded-full border border-border px-2 py-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {enrollingCertId === c.id ? "Enrolling..." : "Enroll"}
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}

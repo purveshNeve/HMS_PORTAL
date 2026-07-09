@@ -47,4 +47,12 @@ export interface Certificate {
   expiryDate: string;
   status: CertificateStatus;
   fileName: string;
+  enrolledUsers?: Array<{
+    userId: string;
+    name: string;
+    email?: string;
+    department?: string;
+    enrolledAt?: string;
+  }>;
+  enrolledUserIds?: string[];
 }

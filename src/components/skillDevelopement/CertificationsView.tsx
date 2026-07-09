@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -16,7 +16,7 @@ import {
   Award,
 } from "lucide-react";
 import { Certificate, CertificateStatus } from "@/types/skill-development";
-import { initialCertificates, departments } from "@/data/skillDevelopmentData";
+import { departments } from "@/data/skillDevelopmentData";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Pagination from "@/components/ui/Pagination";
 import EmptyState from "@/components/ui/EmptyState";
@@ -55,13 +55,48 @@ function downloadCertificateSummary(cert: Certificate) {
 
 export default function CertificationsView() {
   const { toast } = useToast();
-  const [certificates, setCertificates] = useState<Certificate[]>(initialCertificates);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | CertificateStatus>("All");
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<Certificate | null>(null);
+  const [loading , setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchCertificates() {
+      try {
+        const res = await fetch("/api/certificates");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.certificates)) {
+            setCertificates(
+              data.certificates.map((cert: any) => ({
+                id: cert.certificateId,
+                employee: cert.employee,
+                department: cert.department,
+                certificateName: cert.certificateName,
+                issuer: cert.issuer,
+                issueDate: cert.issueDate,
+                expiryDate: cert.expiryDate || "—",
+                status: cert.status,
+                fileName: cert.fileName || "certificate.pdf",
+              }))
+            );
+          }
+        } else {
+          console.error("Failed to fetch certificates", await res.text());
+        }
+      } catch (error) {
+        console.error("Error fetching certificates:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCertificates();
+  }, []);
 
   const filtered = useMemo(() => {
     return certificates.filter((c) => {
@@ -80,13 +115,46 @@ export default function CertificationsView() {
   const openCreate = () => { setEditing(null); setDrawerOpen(true); };
   const openEdit = (cert: Certificate) => { setEditing(cert); setDrawerOpen(true); };
 
-  const handleSave = (cert: Certificate) => {
-    setCertificates((prev) => {
-      const exists = prev.some((c) => c.id === cert.id);
-      return exists ? prev.map((c) => (c.id === cert.id ? cert : c)) : [cert, ...prev];
-    });
-    setDrawerOpen(false);
-    toast(editing ? "Certificate updated." : "Certificate issued successfully.", "success");
+  const handleSave = async (cert: Certificate) => {
+    try {
+      const res = await fetch("/api/certificates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cert),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to save certificate");
+      }
+
+      const data = await res.json();
+      const saved = data.certificate;
+      const savedCertificate: Certificate = {
+        id: saved.certificateId,
+        employee: saved.employee,
+        department: saved.department,
+        certificateName: saved.certificateName,
+        issuer: saved.issuer,
+        issueDate: saved.issueDate,
+        expiryDate: saved.expiryDate || "—",
+        status: saved.status,
+        fileName: saved.fileName || "certificate.pdf",
+      };
+
+      setCertificates((prev) => {
+        const exists = prev.some((c) => c.id === savedCertificate.id);
+        return exists
+          ? prev.map((c) => (c.id === savedCertificate.id ? savedCertificate : c))
+          : [savedCertificate, ...prev];
+      });
+
+      setDrawerOpen(false);
+      toast(editing ? "Certificate updated." : "Certificate issued successfully.", "success");
+    } catch (error) {
+      console.error("Error saving certificate:", error);
+      toast(error instanceof Error ? error.message : "Failed to save certificate", "warning");
+    }
   };
 
   const handleDelete = (cert: Certificate) => {
@@ -199,7 +267,7 @@ export default function CertificationsView() {
             <thead>
               <tr className="border-b border-line bg-paper/60 text-[10.5px] uppercase tracking-wide text-muted">
                 <th className="px-4 py-3 font-semibold">Certificate</th>
-                <th className="px-4 py-3 font-semibold">Employee</th>
+                <th className="px-4 py-3 font-semibold">Mentor</th>
                 <th className="px-4 py-3 font-semibold">Issuer</th>
                 <th className="px-4 py-3 font-semibold">Issued</th>
                 <th className="px-4 py-3 font-semibold">Expires</th>

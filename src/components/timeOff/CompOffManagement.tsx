@@ -80,7 +80,6 @@ export default function CompOffManagement() {
     hoursWorked: '',
     reason: '',
     managerId: '',
-    managerName: '',
   });
 
   useEffect(() => {
@@ -138,7 +137,7 @@ export default function CompOffManagement() {
 
   const handleSubmit = async () => {
     // Validation
-    if (!formData.workDate || !formData.workType || !formData.hoursWorked || !formData.reason || !formData.managerId || !formData.managerName) {
+    if (!formData.workDate || !formData.workType || !formData.hoursWorked || !formData.reason || !formData.managerId) {
       setMessage('Please fill in all required fields.');
       return;
     }
@@ -176,7 +175,6 @@ export default function CompOffManagement() {
           employeeName: user?.name || 'Employee',
           department: user?.department || '',
           managerId: formData.managerId,
-          managerName: formData.managerName,
           workDate: formData.workDate,
           workType: formData.workType,
           hoursWorked: parseInt(formData.hoursWorked),
@@ -201,7 +199,7 @@ export default function CompOffManagement() {
       }
 
       setMessage('Comp-off request submitted successfully.');
-      setFormData({ workDate: '', workType: '', hoursWorked: '', reason: '', managerId: '', managerName: '' });
+      setFormData({ workDate: '', workType: '', hoursWorked: '', reason: '', managerId: '' });
       setShowForm(false);
       window.dispatchEvent(new Event('compoff-request-updated'));
     } catch (err) {
@@ -210,6 +208,86 @@ export default function CompOffManagement() {
       setLoading(false);
     }
   }
+
+  const handleUseCompOff = async (record: CompOffRecord) => {
+    if (!user?.userId) {
+      setMessage('Unable to identify current user.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setMessage('');
+
+      const profileRes = await fetch('/api/profile');
+      const profileData = await profileRes.json().catch(() => null);
+
+      if (!profileRes.ok || !profileData || !profileData.manager) {
+        throw new Error('Unable to resolve your manager from your profile.');
+      }
+
+      const managerId = String(profileData.manager).trim();
+      if (!managerId) {
+        throw new Error('Manager ID is missing from your profile.');
+      }
+
+      const managerRes = await fetch(`/api/users/${encodeURIComponent(managerId)}`);
+      const managerResult = await managerRes.json().catch(() => null);
+
+      if (!managerRes.ok || !managerResult?.data) {
+        throw new Error('Unable to fetch manager details from the database.');
+      }
+
+      // const managerName = managerResult.data.name || '';
+      // if (!managerName) {
+      //   throw new Error('Manager name could not be resolved.');
+      // }
+
+      setFormData(prev => ({ ...prev, managerId }));
+
+      const workDateObj = new Date(record.earnedOn);
+      const workDate = !isNaN(workDateObj.getTime())
+        ? workDateObj.toISOString().split('T')[0]
+        : record.earnedOn;
+
+      const response = await fetch('/api/timeOff/comp-off-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employeeId: user.userId,
+          employeeName: user.name || 'Employee',
+          department: user.department || '',
+          managerId,
+          workDate,
+          workType: record.workType,
+          hoursWorked: record.days * 8,
+          reason: `Using available comp-off earned on ${record.earnedOn}`,
+        }),
+      });
+
+      const resultText = await response.text();
+      let result: { error?: string; success?: boolean } | null = null;
+      if (resultText) {
+        try {
+          result = JSON.parse(resultText);
+        } catch {
+          result = { error: resultText };
+        }
+      }
+
+      if (!response.ok) {
+        const serverMessage = result?.error || 'Failed to request comp-off usage';
+        throw new Error(serverMessage);
+      }
+
+      setMessage('Comp-off request sent to your manager.');
+      window.dispatchEvent(new Event('compoff-request-updated'));
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Failed to request comp-off usage');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="card overflow-hidden">
@@ -263,17 +341,6 @@ export default function CompOffManagement() {
               />
             </div>
 
-            {/* Manager - Readonly */}
-            <div>
-              <label className="form-label">Manager *</label>
-              <input 
-                type="text" 
-                value={formData.managerName} 
-                readOnly 
-                className="form-input bg-slate-100 cursor-not-allowed text-slate-600" 
-              />
-            </div>
-
             {/* Work Date - Date Picker */}
             <div>
               <label className="form-label">Work Date *</label>
@@ -317,37 +384,19 @@ export default function CompOffManagement() {
                 placeholder="1-24 hours"
               />
             </div>
-
-            {/* Manager ID - for backend requirement */}
-            <div className="hidden">
-              <input 
-                type="text" 
-                name="managerId" 
-                value={formData.managerId} 
-                onChange={handleChange}
-              />
-            </div>
           </div>
 
           {/* Manager Selection Section */}
           <div className="mb-3 p-3 bg-white border border-slate-200 rounded-md">
-            <p className="text-xs font-medium text-slate-700 mb-2">Select Your Manager *</p>
-            <div className="flex gap-2">
+            <p className="text-xs font-medium text-slate-700 mb-2">Manager ID *</p>
+            <div>
               <input 
                 type="text" 
                 name="managerId" 
                 value={formData.managerId} 
                 onChange={handleChange}
                 placeholder="Manager ID (e.g., EMP001)"
-                className="form-input flex-1"
-              />
-              <input 
-                type="text" 
-                name="managerName" 
-                value={formData.managerName} 
-                onChange={handleChange}
-                placeholder="Manager Name"
-                className="form-input flex-1"
+                className="form-input w-full"
               />
             </div>
           </div>
@@ -433,10 +482,14 @@ export default function CompOffManagement() {
                     )}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
                   <span className="text-sm font-semibold text-slate-700">{rec.days}d</span>
                   {rec.status === 'Available' && (
-                    <button className="btn-ghost px-2 py-1 text-2xs text-brand-600">
+                    <button
+                      className="btn-ghost px-2 py-1 text-2xs text-brand-600"
+                      onClick={() => handleUseCompOff(rec)}
+                      disabled={loading}
+                    >
                       Use <ArrowRight size={10} />
                     </button>
                   )}

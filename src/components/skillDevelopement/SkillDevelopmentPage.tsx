@@ -5,14 +5,13 @@ import { motion } from "framer-motion";
 import { BookMarked, Grid3x3, ShieldCheck, Construction } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LearningProgramsView from "@/components/skillDevelopement/LearningProgramsView";
-import SkillMatrixView from "@/components/skillDevelopement/SkillMatrixView";
+// import SkillMatrixView from "@/components/skillDevelopement/SkillMatrixView";
 import CertificationsView from "@/components/skillDevelopement/CertificationsView";
 
-type SubModule = "programs" | "matrix" | "certifications";
+type SubModule = "programs" | "certifications";
 
 const SUB_MODULES: { id: SubModule; label: string; icon: React.ElementType }[] = [
   { id: "programs", label: "Learning Programs", icon: BookMarked },
-  { id: "matrix", label: "Employee Skill Matrix", icon: Grid3x3 },
   { id: "certifications", label: "Certification Management", icon: ShieldCheck },
 ];
 
@@ -73,7 +72,6 @@ export default function SkillDevelopmentPage() {
         transition={{ duration: 0.3 }}
       >
         {active === "programs" && <LearningProgramsView />}
-        {active === "matrix" && <SkillMatrixView />}
         {active === "certifications" && <CertificationsView />}
       </motion.div>
     </div>
