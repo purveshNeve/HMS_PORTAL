@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { culturalEvents, holidays, birthdays } from "@/data/culturalEvents";
+import { culturalEvents as initialCulturalEvents, holidays, birthdays } from "@/data/culturalEvents";
 import { CalendarView, CulturalEvent } from "@/types/calendar";
 import { toISODate } from "@/lib/date-utils";
 
@@ -26,21 +26,37 @@ export default function CulturalCalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date(TODAY));
   const [view, setView] = useState<CalendarView>("month");
   const [selectedEvent, setSelectedEvent] = useState<CulturalEvent | null>(null);
+  const [events, setEvents] = useState<CulturalEvent[]>(initialCulturalEvents);
 
   useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const response = await fetch("/api/adminDashboard/events");
+        if (!response.ok) {
+          throw new Error("Failed to load events");
+        }
+        const data = await response.json();
+        setEvents(data.events ?? initialCulturalEvents);
+      } catch (error) {
+        console.error("Failed to fetch persisted events:", error);
+        setEvents(initialCulturalEvents);
+      }
+    };
+
+    loadEvents();
     const t = setTimeout(() => setLoading(false), 550);
     return () => clearTimeout(t);
   }, []);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CulturalEvent[]>();
-    for (const event of culturalEvents) {
+    for (const event of events) {
       const list = map.get(event.date) ?? [];
       list.push(event);
       map.set(event.date, list);
     }
     return map;
-  }, []);
+  }, [events]);
 
   const holidaysByDate = useMemo(() => {
     const map = new Map<string, (typeof holidays)[number]>();
@@ -49,14 +65,14 @@ export default function CulturalCalendarPage() {
   }, []);
 
   const monthEvents = useMemo(() => {
-    return culturalEvents.filter((e) => {
+    return events.filter((e) => {
       const d = new Date(e.date + "T00:00:00");
       return (
         d.getMonth() === currentDate.getMonth() &&
         d.getFullYear() === currentDate.getFullYear()
       );
     });
-  }, [currentDate]);
+  }, [currentDate, events]);
 
   const todaysEvents = useMemo(
     () => eventsByDate.get(toISODate(TODAY)) ?? [],
@@ -65,14 +81,14 @@ export default function CulturalCalendarPage() {
 
   const upcomingEvents = useMemo(() => {
     const todayIso = toISODate(TODAY);
-    return culturalEvents
+    return events
       .filter((e) => e.date >= todayIso)
       .sort((a, b) => a.date.localeCompare(b.date));
-  }, []);
+  }, [events]);
 
   const workshopCount = useMemo(
-    () => culturalEvents.filter((e) => e.category === "Workshop").length,
-    []
+    () => events.filter((e) => e.category === "Workshop").length,
+    [events]
   );
 
   const goToday = () => setCurrentDate(new Date(TODAY));

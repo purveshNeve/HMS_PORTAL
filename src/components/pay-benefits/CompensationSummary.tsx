@@ -8,11 +8,12 @@ import {
   Award,
   CheckCircle2,
 } from "lucide-react";
-
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n);
 
-const cards = [
+const staticCards = [
   {
     label: "Current Monthly Salary",
     value: `₹${fmt(compensationSummary.currentMonthlySalary)}`,
@@ -44,18 +45,6 @@ const cards = [
     accent: "from-amber-500 to-amber-400",
     bg: "bg-amber-50",
     iconBg: "bg-amber-500",
-  },
-  {
-    label: "Last Salary Credited",
-    value: new Date(compensationSummary.lastSalaryCreditedDate).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }),
-    icon: Calendar,
-    accent: "from-emerald-600 to-emerald-400",
-    bg: "bg-emerald-50",
-    iconBg: "bg-emerald-600",
   },
   {
     label: "Next Salary Credit",
@@ -108,39 +97,183 @@ const cards = [
   },
 ];
 
+interface DashboardStats {
+  stats: {
+    attendance: number;
+    leaves: number;
+    wfhLeaves: number;
+    payroll: number;
+    tasks: number;
+  };
+  UpcomingEvents: {
+    meetings: Array<{
+      _id?: string;
+      title?: string;
+      date?: string | Date;
+      time?: string;
+      note?: string;
+      duration?: string;
+    }>;
+    projectDeadline?: Array<{
+      _id?: string;
+      title?: string;
+      dueDate?: string | Date;
+    }>;
+  };
+  payrollBreakdown: {
+    baseSalary: number;
+    workingDays: number;
+    prevMonthSal: number;
+    creditDate: string | null;
+  };
+  details: {
+    approvedLeaves: Array<{
+      type: string;
+      date: string;
+      status: string;
+      color: string;
+    }>;
+    approvedWFH: Array<{
+      type: string;
+      date: string;
+      status: string;
+      color: string;
+    }>;
+    pendingGoals: Array<{
+      id: string;
+      title: string;
+      dueDate: string;
+      priority: string;
+      progress: number;
+    }>;
+  };
+}
+
+function formatDate(dateValue: string | null | Date) {
+  if (!dateValue) return "Not available";
+  const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+  return !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "Not available";
+}
+
 export default function CompensationSummary() {
+
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const { session, isLoading, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      fetchDashboardStats();
+    }
+  }, [isLoading, isAuthenticated]);
+
+  const fetchDashboardStats = async () => {
+    setLoadingStats(true);
+    setStatsError(null);
+
+    try {
+      const res = await fetch("/api/employee/dashboard-stats", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const responseText = await res.text();
+      const response = responseText
+        ? (JSON.parse(responseText) as DashboardStats | { message?: string })
+        : null;
+
+      if (!res.ok) {
+        console.error("Dashboard stats fetch failed:", response ?? responseText);
+        throw new Error(
+          (response && "message" in response && response.message) ||
+            responseText ||
+            "Failed to fetch dashboard stats"
+        );
+      }
+
+      if (!response || typeof response !== "object" || !("payrollBreakdown" in response)) {
+        throw new Error("Invalid dashboard stats response format");
+      }
+
+      setDashboardStats(response as DashboardStats);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error ?? "Unknown error");
+      console.error("Error fetching dashboard stats:", message);
+      setStatsError(message);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const realTimeCards = [
+    ...staticCards.slice(0, 4),
+    {
+      label: "Last Salary Credited",
+      value: dashboardStats
+        ? `₹${dashboardStats.payrollBreakdown.prevMonthSal.toLocaleString("en-IN")}`
+        : "Loading…",
+      icon: Calendar,
+      accent: "from-emerald-600 to-emerald-400",
+      bg: "bg-emerald-50",
+      iconBg: "bg-emerald-600",
+    },
+    {
+      label: "Salary Credit Date",
+      value: dashboardStats
+        ? dashboardStats.payrollBreakdown.creditDate
+          ? formatDate(dashboardStats.payrollBreakdown.creditDate)
+          : "Not available"
+        : "Loading…",
+      icon: Calendar,
+      accent: "from-teal-600 to-teal-400",
+      bg: "bg-teal-50",
+      iconBg: "bg-teal-600",
+    },
+    ...staticCards.slice(5),
+  ];
+
   return (
     <section>
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-1 h-6 rounded-full bg-gradient-to-b from-violet-600 to-blue-600" />
+        <div className="w-1 h-6 rounded-full bg-linear-to-b from-violet-600 to-blue-600" />
         <h2 className="text-lg font-semibold text-slate-800">Compensation Summary</h2>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={card.label}
-              className={`${card.bg} rounded-2xl p-4 border border-white shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col gap-3`}
-            >
-              <div className={`w-9 h-9 rounded-xl ${card.iconBg} flex items-center justify-center`}>
-                <Icon className="w-4 h-4 text-white" />
+      {statsError ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          Unable to load dashboard stats: {statsError}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {realTimeCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={card.label}
+                className={`${card.bg} rounded-2xl p-4 border border-white shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col gap-3`}
+              >
+                <div className={`w-9 h-9 rounded-xl ${card.iconBg} flex items-center justify-center`}>
+                  <Icon className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 font-medium leading-tight mb-1">{card.label}</p>
+                  {card.isStatus ? (
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-700">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      {card.value}
+                    </span>
+                  ) : (
+                    <p className="text-sm font-bold text-slate-800 leading-tight">{card.value}</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-slate-500 font-medium leading-tight mb-1">{card.label}</p>
-                {card.isStatus ? (
-                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-700">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    {card.value}
-                  </span>
-                ) : (
-                  <p className="text-sm font-bold text-slate-800 leading-tight">{card.value}</p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

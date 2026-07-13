@@ -1,8 +1,25 @@
-import mongoose from "mongoose";
 import { dbConnect } from "@/lib/db";
 import CertificateModel from "@/models/Certificate";
 import UserModel from "@/models/User";
 import { NextResponse } from "next/server";
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ certificateId: string }> }
+) {
+  try {
+    await dbConnect();
+    const { certificateId } = await params;
+    const certificate = await CertificateModel.findOne({ certificateId }).lean();
+    if (!certificate) {
+      return NextResponse.json({ message: "Certificate not found" }, { status: 404 });
+    }
+    return NextResponse.json({ certificate }, { status: 200 });
+  } catch (error) {
+    console.error("GET /api/certificates/[certificateId] error:", error);
+    return NextResponse.json({ message: "Failed to fetch certificate" }, { status: 500 });
+  }
+}
 
 export async function PATCH(
   req: Request,

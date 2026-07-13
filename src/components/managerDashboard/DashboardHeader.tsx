@@ -1,5 +1,5 @@
 "use client";
-
+import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { Bell, Search, ChevronDown, Target, CalendarPlus, FileBarChart, Download } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -31,7 +31,7 @@ function getTodayLabel() {
 
 export function DashboardHeader() {
   const today = getTodayLabel();
-
+  const session = useAuth();
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
@@ -41,7 +41,7 @@ export function DashboardHeader() {
     >
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-          Good Morning, {managerProfile.firstName} 👋
+          Good Morning, {session?.user?.name} 👋
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           Here&apos;s an overview of your team&apos;s performance today.

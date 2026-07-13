@@ -49,7 +49,7 @@ export default function Sidebar({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <SectionCard icon={<CalendarDays className="h-3.5 w-3.5" />} title="Today's Events">
+      {/* <SectionCard icon={<CalendarDays className="h-3.5 w-3.5" />} title="Today's Events">
         {todaysEvents.length === 0 ? (
           <p className="text-xs text-muted">Nothing scheduled today — enjoy the calm.</p>
         ) : (
@@ -75,7 +75,7 @@ export default function Sidebar({
             })}
           </ul>
         )}
-      </SectionCard>
+      </SectionCard> */}
 
       <SectionCard icon={<Sparkles className="h-3.5 w-3.5" />} title="Upcoming Highlights">
         <ul className="space-y-2">
@@ -103,7 +103,7 @@ export default function Sidebar({
         </ul>
       </SectionCard>
 
-      <SectionCard icon={<Cake className="h-3.5 w-3.5" />} title="Birthdays">
+      {/* <SectionCard icon={<Cake className="h-3.5 w-3.5" />} title="Birthdays">
         <ul className="space-y-2">
           {upcomingBirthdays.map((b) => (
             <li key={b.id} className="flex items-center gap-2.5 rounded-lg p-1.5">
@@ -119,9 +119,9 @@ export default function Sidebar({
             </li>
           ))}
         </ul>
-      </SectionCard>
+      </SectionCard> */}
 
-      <SectionCard icon={<Landmark className="h-3.5 w-3.5" />} title="Holiday List">
+      {/* <SectionCard icon={<Landmark className="h-3.5 w-3.5" />} title="Holiday List">
         <ul className="space-y-2">
           {holidays.slice(0, 5).map((h) => (
             <li key={h.id} className="flex items-center justify-between gap-2 rounded-lg p-1.5">
@@ -134,7 +134,7 @@ export default function Sidebar({
             </li>
           ))}
         </ul>
-      </SectionCard>
+      </SectionCard> */}
     </div>
   );
 }

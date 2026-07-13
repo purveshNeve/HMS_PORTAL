@@ -194,7 +194,7 @@ function PayslipDetail({
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
-export default function Payslips() {
+export default function Payslips({ initialOpenId, initialAction }: { initialOpenId?: string; initialAction?: string }) {
   const [payslips, setPayslips] = useState<PayslipRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -207,8 +207,14 @@ export default function Payslips() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/payroll/payslips?status=SUBMITTED,PROCESSED,PAID");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch("/api/payroll/payslips?status=SUBMITTED,PROCESSED,PAID", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errorBody = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errorBody}`);
+      }
       const data = await res.json();
       setPayslips(data.payslips ?? []);
     } catch (e) {
@@ -222,6 +228,28 @@ export default function Payslips() {
   useEffect(() => {
     fetchPayslips();
   }, [fetchPayslips]);
+
+  // If an initial open id was provided, open that record once we have data
+  useEffect(() => {
+    if (initialOpenId && payslips.length > 0) {
+      const match = payslips.find((p) => p._id === initialOpenId);
+      if (match) setViewRecord(match);
+    }
+  }, [initialOpenId, payslips]);
+
+  // If initialAction is 'download', trigger print for the opened record
+  useEffect(() => {
+    if (initialAction === "download" && viewRecord) {
+      // give the modal a moment to render
+      setTimeout(() => {
+        try {
+          window.print();
+        } catch (e) {
+          console.error("Print failed:", e);
+        }
+      }, 250);
+    }
+  }, [initialAction, viewRecord]);
 
   // Polling every 30 seconds (silent background refresh)
   useEffect(() => {

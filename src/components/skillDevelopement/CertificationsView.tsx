@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -14,17 +13,73 @@ import {
   FileDown,
   BellRing,
   Award,
+  Users,
 } from "lucide-react";
 import { Certificate, CertificateStatus } from "@/types/skill-development";
 import { departments } from "@/data/skillDevelopmentData";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Pagination from "@/components/ui/Pagination";
 import EmptyState from "@/components/ui/EmptyState";
+import Modal from "@/components/ui/Modal";
 import { useToast } from "@/lib/toast";
 import { exportToCSV, exportToExcel } from "@/lib/export_cultural";
 import CertificateFormDrawer from "./CertificateFormDrawer";
-
+import { useAuth } from "@/hooks/useAuth";
 const PAGE_SIZE = 6;
+
+
+interface DashboardStats {
+  stats: {
+    attendance: number;
+    leaves: number;
+    wfhLeaves: number;
+    payroll: number;
+    tasks: number;
+  };
+  UpcomingEvents: {
+    meetings: Array<{
+      _id?: string;
+      title?: string;
+      date?: string | Date;
+      time?: string;
+      note?: string;
+      duration?: string;
+    }>;
+    projectDeadline?: Array<{
+      _id?: string;
+      title?: string;
+      dueDate?: string | Date;
+    }>;
+  };
+  payrollBreakdown: {
+    baseSalary: number;
+    workingDays: number;
+    prevMonthSal: number;
+    creditedDate: string | null;
+  };
+  details: {
+    approvedLeaves: Array<{
+      type: string;
+      date: string;
+      status: string;
+      color: string;
+    }>;
+    approvedWFH: Array<{
+      type: string;
+      date: string;
+      status: string;
+      color: string;
+    }>;
+    pendingGoals: Array<{
+      id: string;
+      title: string;
+      dueDate: string;
+      priority: string;
+      progress: number;
+    }>;
+  };
+}
+
 
 const statusTone: Record<CertificateStatus, "success" | "warning" | "danger" | "info"> = {
   Valid: "success",
@@ -53,6 +108,14 @@ function downloadCertificateSummary(cert: Certificate) {
   URL.revokeObjectURL(url);
 }
 
+function formatDate(dateValue: string | null | Date) {
+  if (!dateValue) return "Not available";
+  const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+  return !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "Not available";
+}
+
 export default function CertificationsView() {
   const { toast } = useToast();
   const [certificates, setCertificates] = useState<Certificate[]>([]);
@@ -63,6 +126,47 @@ export default function CertificationsView() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<Certificate | null>(null);
   const [loading , setLoading] = useState(false);
+  const [applicantModalOpen, setApplicantModalOpen] = useState(false);
+  const [selectedCertificateName, setSelectedCertificateName] = useState("");
+  const [applicants, setApplicants] = useState<Certificate["enrolledUsers"]>([]);
+  const [applicantsLoading, setApplicantsLoading] = useState(false);
+  const [applicantError, setApplicantError] = useState<string | null>(null);
+  const [loadingStats , setLoadingStats] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [prevMonth, setPrevMonthSalary] = useState<string>("₹100");
+  const [creditedDate, setCreditedDate] = useState<string>("Not available");
+  const { session, isLoading, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+      if (isAuthenticated) {
+        fetchDashboardStats();
+      }
+    }, [isAuthenticated]);
+
+  const fetchDashboardStats = async () => {
+    setLoadingStats(true);
+    try {
+      const res = await fetch("/api/employee/dashboard-stats");
+      if (!res.ok) {
+        throw new Error(`Failed to fetch dashboard stats`);
+      }
+      const data = (await res.json()) as DashboardStats;
+      setDashboardStats(data);
+
+      const prevMonthSalary = data.payrollBreakdown.prevMonthSal;
+      setPrevMonthSalary(`₹${prevMonthSalary?.toLocaleString("en-IN") ?? "0"}`);
+      setCreditedDate(
+        data.payrollBreakdown.creditedDate
+          ? formatDate(data.payrollBreakdown.creditedDate)
+          : "Not available"
+      );
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      // Keep default stats on error
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchCertificates() {
@@ -114,6 +218,28 @@ export default function CertificationsView() {
 
   const openCreate = () => { setEditing(null); setDrawerOpen(true); };
   const openEdit = (cert: Certificate) => { setEditing(cert); setDrawerOpen(true); };
+
+  const handleViewApplicants = async (cert: Certificate) => {
+    setApplicantError(null);
+    setApplicantsLoading(true);
+    setSelectedCertificateName(cert.certificateName);
+    setApplicantModalOpen(true);
+    try {
+      const res = await fetch(`/api/certificates/${encodeURIComponent(cert.id)}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || `Failed to load applicants (${res.status})`);
+      }
+      const data = await res.json();
+      setApplicants(Array.isArray(data.certificate?.enrolledUsers) ? data.certificate.enrolledUsers : []);
+    } catch (error) {
+      console.error("Error loading applicants:", error);
+      setApplicantError(error instanceof Error ? error.message : "Failed to load applicants");
+      setApplicants([]);
+    } finally {
+      setApplicantsLoading(false);
+    }
+  };
 
   const handleSave = async (cert: Certificate) => {
     try {
@@ -298,6 +424,9 @@ export default function CertificationsView() {
                   <td className="px-4 py-3"><StatusBadge status={cert.status} /></td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
+                                <button onClick={() => handleViewApplicants(cert)} className="rounded-full p-1.5 text-muted hover:bg-paper hover:text-ink" aria-label="View applicants" title="View applicants">
+                        <Users className="h-3.5 w-3.5" />
+                      </button>
                       {cert.status === "Pending Verification" && (
                         <button onClick={() => handleVerify(cert)} className="rounded-full p-1.5 text-muted hover:bg-moss-light hover:text-moss" aria-label="Verify" title="Verify certificate">
                           <ShieldCheck className="h-3.5 w-3.5" />
@@ -336,6 +465,36 @@ export default function CertificationsView() {
         initial={editing}
         onSave={handleSave}
       />
+      <Modal
+        open={applicantModalOpen}
+        onClose={() => setApplicantModalOpen(false)}
+        title={
+          selectedCertificateName
+            ? `Applicants for ${selectedCertificateName}`
+            : "Certificate applicants"
+        }
+        size="md"
+      >
+        {applicantsLoading ? (
+          <p className="text-sm text-muted">Loading applicants…</p>
+        ) : applicantError ? (
+          <p className="text-sm text-red-600">{applicantError}</p>
+        ) : applicants?.length ? (
+          <div className="space-y-3">
+            {applicants.map((applicant, index) => (
+              <div key={`${applicant.userId || applicant.email || index}-${index}`} className="rounded-xl border border-line bg-paper/70 p-4">
+                <p className="font-medium text-ink">{applicant.name || applicant.email || applicant.userId}</p>
+                <p className="text-xs text-muted">
+                  {applicant.department || "Department not listed"}
+                  {applicant.email ? ` • ${applicant.email}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">No applicants have applied for this certificate yet.</p>
+        )}
+      </Modal>
     </div>
   );
 }

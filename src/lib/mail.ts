@@ -2,15 +2,25 @@ import { resend } from "./resend";
 
 const resendFrom = process.env.RESEND_FROM_EMAIL ?? `HRMS <onboarding@resend.dev>`;
 
+function canSendEmail() {
+  return !!process.env.RESEND_API_KEY && !!resend;
+}
+
 export async function sendPasswordResetEmail(email: string, token: string) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not defined");
+  if (!canSendEmail()) {
+    console.warn("RESEND_API_KEY is not configured; skipping password reset email.");
+    return;
   }
 
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const resetLink = `${appUrl}/reset-password/${token}`;
 
   try {
+    if (!resend) {
+      console.warn("RESEND_API_KEY is not configured; skipping password reset email.");
+      return;
+    }
+
     await resend.emails.send({
       from: resendFrom,
       to: [email],
@@ -38,12 +48,18 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 }
 
 export async function sendLeaveRequestNotification(email: string, managerName: string, requestId: string, employeeName: string, startDate: string, endDate: string, leaveType: string) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not defined");
+  if (!canSendEmail()) {
+    console.warn("RESEND_API_KEY is not configured; skipping leave request notification email.");
+    return;
   }
 
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const leaveDetailsUrl = `${appUrl}/manager/approvals/leaveApproval`;
+
+  if (!resend) {
+    console.warn("RESEND_API_KEY is not configured; skipping leave request notification email.");
+    return;
+  }
 
   await resend.emails.send({
     from: resendFrom,
@@ -67,13 +83,19 @@ export async function sendLeaveRequestNotification(email: string, managerName: s
 }
 
 export async function sendIncorrectPasswordAlertEmail(email: string, name?: string) {
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not defined");
+  if (!canSendEmail()) {
+    console.warn("RESEND_API_KEY is not configured; skipping incorrect password alert email.");
+    return;
   }
 
   const appUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const resetUrl = `${appUrl}/forgetPasswordPage`;
   const userGreeting = name ? `Hi ${name},` : "Hello,";
+
+  if (!resend) {
+    console.warn("RESEND_API_KEY is not configured; skipping incorrect password alert email.");
+    return;
+  }
 
   await resend.emails.send({
     from: resendFrom,

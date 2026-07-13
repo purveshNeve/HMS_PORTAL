@@ -4,13 +4,14 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     await dbConnect();
+    const { userId } = await params;
 
     const user = await User.findOne(
-      { userId: params.userId, role: "MANAGER" },
+      { userId, role: "MANAGER" },
       { userId: 1, name: 1, role: 1 }
     ).lean();
 

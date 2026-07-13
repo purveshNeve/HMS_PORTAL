@@ -1,6 +1,6 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Breadcrumbs } from "@/components/navigation/Breadcrumbs";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -9,29 +9,94 @@ import { useAuth } from "@/hooks/useAuth";
 import type { CardData } from "@/types/types";
 import type { EmployeeProfile } from "@/types/profile";
 
-const stats = [
-  { label: "Attendance", value: "22", subtitle: "Present Days This Month" },
-  { label: "Leaves", value: "10", subtitle: "Leaves Remaining This Year" },
-  { label: "Payroll", value: "₹45,000", subtitle: "This Month Salary" },
+interface DashboardStats {
+  stats: {
+    attendance: number;
+    leaves: number;
+    wfhLeaves: number;
+    payroll: number;
+    tasks: number;
+  };
+  UpcomingEvents: {
+    meetings: Array<{
+      _id?: string;
+      title?: string;
+      date?: string | Date;
+      time?: string;
+      note?: string;
+      duration?: string;
+    }>;
+    projectDeadline?: Array<{
+      _id?: string;
+      title?: string;
+      dueDate?: string | Date;
+    }>;
+  };
+  payrollBreakdown: {
+    baseSalary: number;
+    workingDays: number;
+    prevMonthSal: number;
+    creditedDate: string | null;
+  };
+  details: {
+    approvedLeaves: Array<{
+      type: string;
+      date: string;
+      status: string;
+      color: string;
+    }>;
+    approvedWFH: Array<{
+      type: string;
+      date: string;
+      status: string;
+      color: string;
+    }>;
+    pendingGoals: Array<{
+      id: string;
+      title: string;
+      dueDate: string;
+      priority: string;
+      progress: number;
+    }>;
+  };
+}
+
+const defaultStats = [
+  { label: "Attendance", value: "22", total: "0",subtitle: "Present Days This Month" },
+  { label: "Leaves", value: "10", total: "0",subtitle: "Leaves Taken This Month" },
+  { label: "WFH Leaves", value: "10",total: "0", subtitle: "WFH Leaves Taken This Month" },
+  { label: "Payroll", value: "₹45,000",subtitle: "This Month Salary" },
   { label: "Tasks", value: "05", subtitle: "Pending Tasks Due Soon" },
+  {label: "LastMonth" , value: "45000" ,subtitle: "Last Month Salary"},
 ];
 
-const leaveRequests = [
+const defaultLeaveRequests = [
   { type: "Casual Leave", date: "10 Jun – 12 Jun", status: "Approved", color: "bg-emerald-100 text-emerald-700" },
   { type: "Sick Leave", date: "22 Jun", status: "Pending", color: "bg-amber-100 text-amber-700" },
   { type: "Casual Leave", date: "01 Jul – 02 Jul", status: "Pending", color: "bg-amber-100 text-amber-700" },
 ];
 
-const events = [
-  { date: "17 Jun", title: "Team Meeting", time: "11:00 AM – 12:00 PM" },
-  { date: "20 Jun", title: "Project Deadline", time: "All Day" },
-  { date: "25 Jun", title: "Company Townhall", time: "03:00 PM – 04:00 PM" },
-];
+type DashboardEventItem = {
+  key: string;
+  title: string;
+  time: string;
+  date: string;
+  agenda?: string;
+  type: "meeting" | "deadline" | "event" | "holiday";
+};
+
+type AnnouncementItem = {
+  key: string;
+  title: string;
+  time?: string;
+  date: string;
+  agenda?: string;
+  type: "event" | "holiday";
+  badge: string;
+};
 
 const announcements = [
   { title: "Holiday Notice", description: "Office will remain closed on 21 June 2025 on account of...", date: "2 days ago", badge: "Notice" },
-  { title: "Policy Update", description: "New work from home policy has been updated. Please...", date: "5 days ago", badge: "Update" },
-  { title: "Internal Job Opening", description: "We are hiring a UI/UX Designer. Interested candidates...", date: "1 week ago", badge: "Hiring" },
 ];
 
 const activities = [
@@ -50,13 +115,48 @@ function formatDate(dateValue: string | null | Date) {
 }
 
 export default function EmployeeDashboardPage() {
+
+  const router = useRouter();
+
+  const handleViewPayslip = async () => {
+    try {
+      const res = await fetch("/api/payroll/payslips?status=SUBMITTED,PROCESSED,PAID");
+      if (res.ok) {
+        const data = await res.json();
+        const first = data.payslips?.[0];
+        if (first?._id) {
+          router.push(`/employee/PayAndBenefit/overview?openId=${first._id}`);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch payslip before navigation:", err);
+    }
+    // Fallback: still navigate to overview
+    router.push("/employee/PayAndBenefit/overview");
+  };
   const { session, isLoading, isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
-
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [stats, setStats] = useState(defaultStats);
+  const [leaveRequests, setLeaveRequests] = useState(defaultLeaveRequests);
+  const [backendEvents, setBackendEvents] = useState<DashboardEventItem[]>([]);
+  const [backendHolidays, setBackendHolidays] = useState<DashboardEventItem[]>([]);
+  const [prevMonth, setPrevMonthSalary] = useState<string>("₹100");
+  const [creditedDate, setCreditedDate] = useState<string>("Not available");
+  
   useEffect(() => {
     if (isAuthenticated && !profile) {
       fetchProfile();
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDashboardStats();
+      fetchEventsAndHolidays();
     }
   }, [isAuthenticated]);
 
@@ -75,6 +175,123 @@ export default function EmployeeDashboardPage() {
       setLoadingProfile(false);
     }
   };
+
+  const fetchDashboardStats = async () => {
+    setLoadingStats(true);
+    try {
+      const res = await fetch("/api/employee/dashboard-stats");
+      if (!res.ok) {
+        throw new Error(`Failed to fetch dashboard stats`);
+      }
+      const data = (await res.json()) as DashboardStats;
+      setDashboardStats(data);
+
+      const prevMonthSalary = data.payrollBreakdown.prevMonthSal;
+      setPrevMonthSalary(`₹${prevMonthSalary?.toLocaleString("en-IN") ?? "0"}`);
+      setCreditedDate(
+        data.payrollBreakdown.creditedDate
+          ? formatDate(data.payrollBreakdown.creditedDate)
+          : "Not available"
+      );
+
+      const updatedStats = [
+        { label: "Attendance", value: String(data.stats.attendance), 
+          total: "30" , subtitle: "Present Days This Month" },
+        { label: "Leaves", value: String(data.stats.leaves), total : "2",subtitle: "Leaves Taken This Month"}, 
+        { label: "WFH Leaves", value: String(data.stats.wfhLeaves), 
+          total : "5" , subtitle: "WFH Leaves Taken This Month" },
+        {
+          label: "Payroll",
+          value: `₹${data.stats.payroll.toLocaleString("en-IN")}`,
+          subtitle: "This Month Salary",
+        },
+        { label: "Tasks", value: String(data.stats.tasks), subtitle: "Pending Tasks Due Soon" },
+      ];
+      setStats(updatedStats);
+
+      const allRequests = [
+        ...data.details.approvedLeaves,
+        ...data.details.approvedWFH,
+      ];
+      setLeaveRequests(allRequests.length > 0 ? allRequests : defaultLeaveRequests);
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      // Keep default stats on error
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const fetchEventsAndHolidays = async () => {
+    try {
+      const [eventsRes, holidaysRes] = await Promise.all([
+        fetch("/api/adminDashboard/events"),
+        fetch("/api/adminDashboard/holidays"),
+      ]);
+
+      if (eventsRes.ok) {
+        const data = await eventsRes.json();
+        setBackendEvents(
+          (data.events ?? []).map((item: any) => ({
+            key: item.id || item.eventId || `${item.title}-${item.date}-${item.time}`,
+            title: item.title ?? "Event",
+            time: item.time ?? "All Day",
+            date: item.date ? formatDate(new Date(item.date)) : "",
+            agenda: item.description ?? "",
+            type: "event",
+          }))
+        );
+      } else {
+        setBackendEvents([]);
+      }
+
+      if (holidaysRes.ok) {
+        const data = await holidaysRes.json();
+        setBackendHolidays(
+          (data.holidays ?? []).map((item: any) => ({
+            key: item.id || item.holidayId || `${item.title}-${item.date}`,
+            title: item.title ?? "Holiday",
+            time: "",
+            date: item.date ? formatDate(new Date(item.date)) : "",
+            agenda: item.description ?? "",
+            type: "holiday",
+          }))
+        );
+      } else {
+        setBackendHolidays([]);
+      }
+    } catch (error) {
+      console.error("Error fetching events and holidays:", error);
+      setBackendEvents([]);
+      setBackendHolidays([]);
+    }
+  };
+
+  const eventList = useMemo(() => {
+    const meetings = dashboardStats?.UpcomingEvents?.meetings ?? [];
+    const deadlines = dashboardStats?.UpcomingEvents?.projectDeadline ?? [];
+    if (meetings.length > 0 || deadlines.length > 0) {
+      return [
+        ...meetings.map((m) => ({
+          key: m._id ?? `${m.date}-${m.time}`,
+          title: m.title ?? "Meeting",
+          time: m.time ?? "",
+          date: m.date ? formatDate(new Date(m.date)) : "",
+          agenda: m.note ?? "",
+          type: "meeting" as const,
+        })),
+        ...deadlines.map((p) => ({
+          key: p._id ?? p.title ?? "deadline",
+          title: p.title ?? "Project Deadline",
+          time: p.dueDate ? formatDate(new Date(p.dueDate)) : "",
+          date: p.dueDate ? formatDate(new Date(p.dueDate)) : "",
+          agenda: "",
+          type: "deadline" as const,
+        })),
+      ];
+    }
+    return backendEvents;
+  }, [backendEvents, dashboardStats]);
 
   const initials = useMemo(() => {
     const name = profile?.name || session?.user?.name || "User";
@@ -109,7 +326,7 @@ export default function EmployeeDashboardPage() {
     photoUrl: profileImage,
   };
 
-  if (isLoading || loadingProfile) {
+  if (isLoading || loadingProfile || loadingStats) {
     return (
       <div className="flex items-center justify-center min-h-screen px-4">
         <div className="text-center">
@@ -121,15 +338,7 @@ export default function EmployeeDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <Breadcrumbs
-        items={[
-          { label: "Home", href: "/" },
-          { label: "Employee", href: "/employee/dashboard" },
-          { label: "Dashboard" },
-        ]}
-      />
-
+    <div className="space-y-6">       
       <div>
         <h1 className="text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
           Welcome back, {displayName}
@@ -146,12 +355,12 @@ export default function EmployeeDashboardPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {stats.slice(0, 2).map((item) => (
+            {stats.slice(0, 3).map((item) => (
               <Card key={item.label}>
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-zinc-500">{item.label}</p>
-                    <p className="mt-3 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{item.value}</p>
+                    <p className="mt-3 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{item.value}/{item.total}</p>
                   </div>
                 </div>
                 <p className="mt-4 text-sm text-zinc-500">{item.subtitle}</p>
@@ -167,17 +376,44 @@ export default function EmployeeDashboardPage() {
             <CardContent>
               <div className="flex items-center justify-between gap-4 rounded-3xl bg-slate-100 p-6 dark:bg-zinc-900">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-zinc-500">Current Month</p>
-                  <p className="mt-3 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">₹45,000</p>
+                  <p className="text-sm uppercase tracking-[0.24em] text-zinc-500">LAST MONTH SALARY</p>
+                  <p className="mt-3 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{prevMonth}</p>
                 </div>
                 <div className="space-y-1 text-right">
                   <p className="text-sm text-zinc-500">Last credited on</p>
-                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">01 June 2025</p>
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{creditedDate}</p>
                 </div>
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button variant="secondary" size="sm">View Payslip</Button>
-                <Button variant="ghost" size="sm">Download Statement</Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleViewPayslip}
+                >
+                  View Payslip
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/payroll/payslips?status=SUBMITTED,PROCESSED,PAID");
+                      if (res.ok) {
+                        const data = await res.json();
+                        const first = data.payslips?.[0];
+                        if (first?._id) {
+                          router.push(`/employee/PayAndBenefit/overview?openId=${first._id}&action=download`);
+                          return;
+                        }
+                      }
+                    } catch (err) {
+                      console.error("Failed to fetch payslip before download:", err);
+                    }
+                    router.push("/employee/PayAndBenefit/overview");
+                  }}
+                >
+                  Download Statement
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -188,22 +424,28 @@ export default function EmployeeDashboardPage() {
               <CardDescription>Keep track of your next meetings and company events.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {events.map((event) => (
-                <div key={event.date} className="flex items-center justify-between gap-4 rounded-3xl bg-zinc-100 p-4 dark:bg-zinc-900">
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{event.title}</p>
-                    <p className="text-sm text-zinc-500">{event.time}</p>
+              {eventList.length > 0 ? (
+                eventList.map((event) => (
+                  <div key={event.key} className="flex items-center justify-between gap-4 rounded-3xl bg-zinc-100 p-4 dark:bg-zinc-900">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{event.title}</p>
+                      <p className="text-sm text-zinc-500">{event.type === "meeting" ? event.time : `Due: ${event.time}`}</p>
+                      {event.agenda ? <p className="text-xs text-slate-500 mt-1">{event.agenda}</p> : null}
+                    </div>
+                    <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-slate-300">{event.date}</span>
                   </div>
-                  <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-slate-300">{event.date}</span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-sm text-zinc-500">No upcoming events available.</p>
+              )}
             </CardContent>
           </Card>
+
         </div>
 
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            {stats.slice(2).map((item) => (
+            {stats.slice(3).map((item) => (
               <Card key={item.label}>
                 <p className="text-sm font-medium text-zinc-500">{item.label}</p>
                 <p className="mt-3 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{item.value}</p>
@@ -261,16 +503,30 @@ export default function EmployeeDashboardPage() {
               <CardDescription>Latest company updates and notices.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {announcements.map((item) => (
-                <div key={item.title} className="rounded-3xl bg-zinc-100 p-4 dark:bg-zinc-900">
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{item.title}</p>
-                    <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-zinc-800 dark:text-slate-300">{item.badge}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{item.description}</p>
-                  <p className="mt-3 text-xs text-zinc-500">{item.date}</p>
+              
+
+              {(backendEvents.length > 0 || backendHolidays.length > 0) ? (
+                <div className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                  {[...backendEvents, ...backendHolidays].map((item) => (
+                    <div key={item.key} className="rounded-3xl bg-zinc-100 p-4 dark:bg-zinc-900">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{item.title}</p>
+                          <p className="text-sm text-zinc-500">
+                            {item.date}{item.time ? ` • ${item.time}` : ""}
+                          </p>
+                          {item.agenda ? <p className="text-xs text-slate-500 mt-1">{item.agenda}</p> : null}
+                        </div>
+                        <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-zinc-800 dark:text-slate-300">
+                          {item.type === "holiday" ? "Holiday" : "Event"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <p className="text-sm text-zinc-500">No upcoming events or holidays available.</p>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -4,6 +4,7 @@
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import EmployeeQueriesButton from "@/components/chat/EmployeeQueriesButton";
 
 interface DashboardHeaderProps {
   lastUpdated: string | null;
@@ -47,6 +48,7 @@ export function DashboardHeader({ lastUpdated, onRefresh, isRefreshing }: Dashbo
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
           Refresh
         </button>
+        <EmployeeQueriesButton />
       </div>
     </motion.div>
   );

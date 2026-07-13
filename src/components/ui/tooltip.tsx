@@ -49,22 +49,29 @@ export function TooltipTrigger({ asChild, children }: TooltipTriggerProps) {
   const closeTooltip = () => context.setOpen(false);
 
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children, {
-      onMouseEnter: (event: React.MouseEvent) => {
+    const childProps = children.props as React.HTMLAttributes<HTMLElement> & {
+      onMouseEnter?: (event: React.MouseEvent<HTMLElement>) => void;
+      onMouseLeave?: (event: React.MouseEvent<HTMLElement>) => void;
+      onFocus?: (event: React.FocusEvent<HTMLElement>) => void;
+      onBlur?: (event: React.FocusEvent<HTMLElement>) => void;
+    };
+
+    return React.cloneElement(children as React.ReactElement<any>, {
+      onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
         openTooltip();
-        children.props.onMouseEnter?.(event);
+        childProps.onMouseEnter?.(event);
       },
-      onMouseLeave: (event: React.MouseEvent) => {
+      onMouseLeave: (event: React.MouseEvent<HTMLElement>) => {
         closeTooltip();
-        children.props.onMouseLeave?.(event);
+        childProps.onMouseLeave?.(event);
       },
-      onFocus: (event: React.FocusEvent) => {
+      onFocus: (event: React.FocusEvent<HTMLElement>) => {
         openTooltip();
-        children.props.onFocus?.(event);
+        childProps.onFocus?.(event);
       },
-      onBlur: (event: React.FocusEvent) => {
+      onBlur: (event: React.FocusEvent<HTMLElement>) => {
         closeTooltip();
-        children.props.onBlur?.(event);
+        childProps.onBlur?.(event);
       },
     });
   }

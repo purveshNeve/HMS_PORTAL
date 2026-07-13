@@ -36,14 +36,19 @@ export function HoverCardTrigger({ asChild, children }: HoverCardTriggerProps) {
   }
 
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children, {
+    const childProps = children.props as React.HTMLAttributes<HTMLElement> & {
+      onFocus?: (event: React.FocusEvent<HTMLElement>) => void;
+      onBlur?: (event: React.FocusEvent<HTMLElement>) => void;
+    };
+
+    return React.cloneElement(children as React.ReactElement<any>, {
       onFocus: (event: React.FocusEvent<HTMLElement>) => {
         context.setOpen(true);
-        children.props.onFocus?.(event);
+        childProps.onFocus?.(event);
       },
       onBlur: (event: React.FocusEvent<HTMLElement>) => {
         context.setOpen(false);
-        children.props.onBlur?.(event);
+        childProps.onBlur?.(event);
       },
     });
   }

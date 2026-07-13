@@ -67,9 +67,11 @@ export function PayrollOverview({ refreshKey }: { refreshKey: number }) {
                 <YAxis tick={{ fontSize: 12, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{ borderRadius: 12, border: "1px solid #f3f4f6", fontSize: 12 }}
-                  formatter={(value: number | string | undefined) =>
-                    typeof value === "number" ? formatCurrency(value) : ""
-                  }
+                  formatter={(value: number | string | readonly (number | string)[] | undefined) => {
+                    if (typeof value === "number") return formatCurrency(value);
+                    if (typeof value === "string") return value;
+                    return "";
+                  }}
                 />
                 <Area type="monotone" dataKey="amount" stroke="#6366f1" strokeWidth={2.5} fill="url(#payrollGradient)" />
               </AreaChart>

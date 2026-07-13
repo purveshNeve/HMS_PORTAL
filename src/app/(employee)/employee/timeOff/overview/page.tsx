@@ -1,11 +1,11 @@
 'use client';
 import PageHeader from '@/components/layout/PageHeader';
-import SummaryStrip      from '@/components/timeOff/SummaryStrip';
+import SummaryStrip from '@/components/timeOff/SummaryStrip';
 import LeaveBalanceTable from '@/components/timeOff/LeaveBalanceTable';
-import UpcomingLeaves    from '@/components/timeOff/UpcomingLeaves';
+import UpcomingLeaves from '@/components/timeOff/UpcomingLeaves';
 import NotificationsAlerts from '@/components/timeOff/NotificationsAlerts';
-import ManagerComments   from '@/components/timeOff/ManagerComments';
-import QuickActions      from '@/components/timeOff/QuickActions';
+import ManagerComments from '@/components/timeOff/ManagerComments';
+import QuickActions from '@/components/timeOff/QuickActions';
 
 export default function OverviewPage() {
   return (
@@ -19,13 +19,13 @@ export default function OverviewPage() {
           </div>
           <div className="space-y-5">
             <UpcomingLeaves />
-            <NotificationsAlerts />
+            <QuickActions />
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <ManagerComments />
-          <QuickActions />
+          <NotificationsAlerts />
         </div>
       </div>
     </main>

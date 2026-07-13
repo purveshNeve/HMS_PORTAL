@@ -30,7 +30,13 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ payslips: records }, { status: 200 });
   } catch (error) {
-    console.error("GET /api/payroll/payslips error:", error);
-    return NextResponse.json({ message: "Failed to fetch payslips" }, { status: 500 });
+    console.error("GET/api/payroll/payslips error:", error);
+    return NextResponse.json(
+      {
+        message: "Failed to fetch payslips",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
 }
