@@ -6,6 +6,8 @@ import WFHRequests from "@/models/WFHRequests";
 import CompOffRequest from "@/models/CompOffRequest";
 import { NextResponse } from "next/server";
 
+
+
 export async function GET() {
     try {
         const session = await auth();
@@ -16,7 +18,7 @@ export async function GET() {
             );
         }
         // Only managers should access this endpoint
-        if (session.user.role !== "manager") {
+        if (session.user.role !== "MANAGER") {
             return NextResponse.json(
                 { message: "Forbidden: Manager access only" },
                 { status: 403 }

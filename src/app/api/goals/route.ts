@@ -13,7 +13,7 @@ export async function GET() {
     await dbConnect();
 
     const filter =
-      session.user.role === "manager"
+      session.user.role === "MANAGER"
         ? { createdBy: session.user.userId }
         : { assignedTo: session.user.userId };
 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     if (!session?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    if (session.user.role !== "manager") {
+    if (session.user.role !== "MANAGER") {
       return NextResponse.json({ message: "Only managers can create goals" }, { status: 403 });
     }
     await dbConnect();

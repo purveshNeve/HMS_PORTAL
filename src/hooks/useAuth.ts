@@ -10,6 +10,8 @@ export function useAuth() {
   const isLoading = status === "loading";
   const isAuthenticated = status === "authenticated";
 
+  const normalizedRole = role?.toLowerCase() as UserRole | undefined;
+
   return {
     session,
     user: session?.user ?? null,
@@ -18,9 +20,9 @@ export function useAuth() {
     department,
     isLoading,
     isAuthenticated,
-    isAdmin: role === "admin",
-    isManager: role === "manager",
-    isEmployee: role === "employee",
+    isAdmin: normalizedRole === "admin",
+    isManager: normalizedRole === "manager",
+    isEmployee: normalizedRole === "employee",
     updateSession: update,
   };
 }

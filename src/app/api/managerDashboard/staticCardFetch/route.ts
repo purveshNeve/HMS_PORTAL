@@ -14,18 +14,18 @@ export async function GET() {
         await dbConnect();
         const employeeCount = await User.countDocuments({
             role: "EMPLOYEE",
-            manager: session?.user?.id
+            manager: session?.user?.userId
         })
 
         const employees = await User.find(
             {
                 role: "EMPLOYEE",
-                manager: session?.user?.id,
+                manager: session?.user?.userId,
             },
-            { _id: 1 }
+            { userId: 1 }
         ).lean();
 
-        const employeeIds = employees.map((emp) => emp._id);
+        const employeeIds = employees.map((emp) => emp.userId);
 
         const approvedLeaveCount = await LeaveRequest.countDocuments({
             employeeId: { $in: employeeIds },
@@ -44,7 +44,7 @@ export async function GET() {
         });
 
         const activeGoals = await Goal.countDocuments({
-            employeeId: { $in: employeeIds },
+            assignedTo: { $in: employeeIds },
             status: "in_progress",
         });
 

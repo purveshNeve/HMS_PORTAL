@@ -1,8 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, MessageSquare, Pencil, MoreHorizontal, Search, Star } from "lucide-react";
+import {
+  Eye,
+  MessageSquare,
+  Pencil,
+  MoreHorizontal,
+  Search,
+} from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -15,145 +22,247 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { teamMembers, type EmployeeStatus, type TeamMember } from "@/lib/mock/dashboard";
+
 import { cn } from "@/lib/utils";
+import { getManagerEmployees } from "@/lib/managerDasboardOverview";
 
 const PAGE_SIZE = 5;
 
-const statusMeta: Record<EmployeeStatus, { label: string; className: string }> = {
-  active: { label: "Active", className: "bg-emerald-50 text-emerald-700 hover:bg-emerald-50" },
-  remote: { label: "Remote", className: "bg-indigo-50 text-indigo-700 hover:bg-indigo-50" },
-  "on-leave": { label: "On Leave", className: "bg-amber-50 text-amber-700 hover:bg-amber-50" },
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  designation: string;
+  department: string;
+  attendance: number;
+  currentGoal: string;
+  status: "Active" | "Remote" | "On Leave";
+  goalAhead: String;
+  profileImage?: string;
+}
+
+const statusMeta = {
+  Active: {
+    label: "Active",
+    className: "bg-emerald-50 text-emerald-700",
+  },
+  Remote: {
+    label: "Remote",
+    className: "bg-indigo-50 text-indigo-700",
+  },
+  "On Leave": {
+    label: "On Leave",
+    className: "bg-amber-50 text-amber-700",
+  },
 };
 
 export function TeamOverviewTable() {
+  const [employees, setEmployees] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    async function fetchEmployees() {
+      try {
+        const data = await getManagerEmployees();
+        setEmployees(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchEmployees();
+  }, []);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return teamMembers;
-    return teamMembers.filter(
-      (m) =>
-        m.name.toLowerCase().includes(q) ||
-        m.role.toLowerCase().includes(q) ||
-        m.department.toLowerCase().includes(q)
-    );
-  }, [query]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    if (!q) return employees;
+
+    return employees.filter(
+      (employee) =>
+        employee.name.toLowerCase().includes(q) ||
+        employee.designation.toLowerCase().includes(q) ||
+        employee.department.toLowerCase().includes(q)
+    );
+  }, [employees, query]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filtered.length / PAGE_SIZE)
+  );
+
+  const paged = filtered.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          Loading employees...
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
     >
       <Card className="rounded-xl border-slate-200 shadow-sm">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-base font-semibold text-slate-800">
+            <CardTitle className="text-base font-semibold">
               Team Overview
             </CardTitle>
+
             <p className="text-xs text-slate-400">
-              {filtered.length} of {teamMembers.length} members
+              {filtered.length} of {employees.length} members
             </p>
           </div>
-          <div className="relative w-full sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
             <Input
               value={query}
+              placeholder="Search employee..."
+              className="pl-9"
               onChange={(e) => {
                 setQuery(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search by name, role, department"
-              className="rounded-xl border-slate-200 pl-9"
             />
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
           <ScrollArea className="w-full">
-            <div className="min-w-[860px]">
+            <div className="min-w-[900px]">
               <table className="w-full border-collapse text-sm">
-                <thead className="sticky top-0 z-10 bg-slate-50/90 backdrop-blur">
-                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+                <thead className="bg-slate-50">
+                  <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
                     <th className="px-5 py-3">Employee</th>
                     <th className="px-3 py-3">Department</th>
                     <th className="px-3 py-3">Attendance</th>
                     <th className="px-3 py-3">Current Goal</th>
-                    <th className="px-3 py-3">Performance</th>
                     <th className="px-3 py-3">Status</th>
-                    <th className="px-3 py-3 text-right">Actions</th>
+                    <th className="px-3 py-3">Goal Progress</th>
+                    {/* <th className="px-3 py-3 text-right">Actions</th> */}
                   </tr>
                 </thead>
+
                 <tbody>
-                  {paged.map((member: TeamMember) => (
+                  {paged.map((employee) => (
                     <tr
-                      key={member.id}
-                      className="border-t border-slate-100 transition-colors hover:bg-slate-50/70"
+                      key={employee.id}
+                      className="border-t border-slate-100 hover:bg-slate-50"
                     >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-indigo-50 text-xs font-medium text-indigo-600">
-                              {member.initials}
-                            </AvatarFallback>
+                          <Avatar className="h-10 w-10">
+                            {employee.profileImage ? (
+                              <img
+                                src={employee.profileImage}
+                                alt={employee.name}
+                                className="h-full w-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <AvatarFallback className="bg-indigo-100 text-indigo-600">
+                                {employee.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .substring(0, 2)}
+                              </AvatarFallback>
+                            )}
                           </Avatar>
+
                           <div>
-                            <p className="font-medium text-slate-800">{member.name}</p>
-                            <p className="text-xs text-slate-400">{member.role}</p>
+                            <p className="font-medium">
+                              {employee.name}
+                            </p>
+
+                            <p className="text-xs text-slate-500">
+                              {employee.designation}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-slate-600">{member.department}</td>
-                      <td className="px-3 py-3 text-slate-600">{member.attendance}%</td>
-                      <td className="px-3 py-3 max-w-[220px] truncate text-slate-600">
-                        {member.currentGoal}
-                      </td>
+
                       <td className="px-3 py-3">
-                        <span className="inline-flex items-center gap-1 text-slate-700">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                          {member.performance.toFixed(1)}
-                        </span>
+                        {employee.department}
                       </td>
+
+                      <td className="px-3 py-3">
+                        {employee.attendance}%
+                      </td>
+
+                      <td className="px-3 py-3">
+                        {employee.currentGoal}
+                      </td>
+
                       <td className="px-3 py-3">
                         <Badge
-                          variant="default"
-                          className={cn("rounded-full font-normal", statusMeta[member.status].className)}
+                          className={cn(
+                            "rounded-full",
+                            statusMeta[employee.status].className
+                          )}
                         >
-                          {statusMeta[member.status].label}
+                          {statusMeta[employee.status].label}
                         </Badge>
                       </td>
-                      <td className="px-3 py-3 text-right">
+
+                      <td className="px-3 py-3">
+                          {employee.goalAhead}
+                      </td>
+
+                      {/* <td className="px-3 py-3 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 rounded-lg">
-                              <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40 rounded-xl">
-                            <DropdownMenuItem className="gap-2">
-                              <Eye className="h-4 w-4" /> View
+
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2">
-                              <MessageSquare className="h-4 w-4" /> Message
+
+                            <DropdownMenuItem>
+                              <MessageSquare className="mr-2 h-4 w-4" />
+                              Message
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2">
-                              <Pencil className="h-4 w-4" /> Edit
+
+                            <DropdownMenuItem>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
-                  {paged.length === 0 && (
+
+                  {!loading && paged.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-400">
-                        No team members match your search.
+                      <td
+                        colSpan={6}
+                        className="py-8 text-center text-slate-500"
+                      >
+                        No employees found.
                       </td>
                     </tr>
                   )}
@@ -162,26 +271,32 @@ export function TeamOverviewTable() {
             </div>
           </ScrollArea>
 
-          <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-            <p className="text-xs text-slate-400">
+          <div className="flex items-center justify-between border-t px-5 py-3">
+            <p className="text-xs text-slate-500">
               Page {page} of {totalPages}
             </p>
+
             <div className="flex gap-2">
               <Button
                 variant="secondary"
                 size="sm"
-                className="rounded-lg"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                onClick={() =>
+                  setPage((prev) => Math.max(prev - 1, 1))
+                }
               >
                 Previous
               </Button>
+
               <Button
                 variant="secondary"
                 size="sm"
-                className="rounded-lg"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                onClick={() =>
+                  setPage((prev) =>
+                    Math.min(prev + 1, totalPages)
+                  )
+                }
               >
                 Next
               </Button>

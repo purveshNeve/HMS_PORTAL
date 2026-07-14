@@ -4,7 +4,7 @@ import type { JWT } from "@auth/core/jwt";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
-import UserModel from "@/models/User";
+import UserSchema from "@/models/User";
 import { dbConnect } from "./db";
 import { sendIncorrectPasswordAlertEmail } from "@/lib/mail";
 import type { UserRole } from "@/types";
@@ -59,9 +59,14 @@ export const authConfig: NextAuthConfig = {
         try {
           console.log("========== LOGIN ATTEMPT ==========");
           console.log("Received Credentials:", credentials);
-
+          console.log("userId:", credentials.userId);
+          console.log("typeof userId:", typeof credentials.userId);
+          console.log("email:", credentials.email);
+          console.log("role:", credentials.role);
           await dbConnect();
           console.log("Database:", mongoose.connection.name);
+          const totalUsers = await UserSchema.countDocuments();
+          console.log("Total users:", totalUsers);
           // Check required fields
           if (
             !credentials?.userId ||
@@ -73,8 +78,9 @@ export const authConfig: NextAuthConfig = {
           }
 
           // Search only by userId
-          const user = await UserModel.findOne({
-            userId: credentials.userId,
+          const user = await UserSchema.findOne({
+            userId: String(credentials.userId).trim(),
+            email: String(credentials.email).trim().toLowerCase(),
           });
 
           console.log("User Found:", user);

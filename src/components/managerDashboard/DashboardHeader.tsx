@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { managerProfile, quickActions, type QuickActionItem } from "@/lib/mock/dashboard";
-
+import Link from "next/link";
 const quickActionIconMap: Record<QuickActionItem["icon"], typeof Target> = {
   target: Target,
   calendarPlus: CalendarPlus,
@@ -61,7 +61,7 @@ export function DashboardHeader() {
           />
         </div>
 
-        <Button
+        {/* <Button
           variant="secondary"
           size="sm"
           className="relative rounded-xl border-slate-200 shadow-sm"
@@ -73,7 +73,7 @@ export function DashboardHeader() {
               {managerProfile.unreadNotifications}
             </Badge>
           )}
-        </Button>
+        </Button> */}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -85,8 +85,17 @@ export function DashboardHeader() {
           <DropdownMenuContent align="end" className="w-52 rounded-xl">
             {quickActions.map((action: QuickActionItem) => {
               const Icon = quickActionIconMap[action.icon as QuickActionItem['icon']];
-              return (
-                <DropdownMenuItem key={action.id} className="gap-2 rounded-lg">
+              return action.link ? (
+                <Link
+                  href={action.link}
+                  key={action.id}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  <Icon className="h-4 w-4 text-slate-500" />
+                  {action.label}
+                </Link>
+              ) : (
+                <DropdownMenuItem key={action.id} className="gap-2 rounded-lg flex items-center">
                   <Icon className="h-4 w-4 text-slate-500" />
                   {action.label}
                 </DropdownMenuItem>

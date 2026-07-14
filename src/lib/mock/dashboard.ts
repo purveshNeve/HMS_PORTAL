@@ -47,13 +47,12 @@ export interface QuickActionItem {
   id: string;
   label: string;
   icon: "target" | "calendarPlus" | "fileBarChart" | "download";
+  link?: string;
 }
 
 export const quickActions: QuickActionItem[] = [
-  { id: "assign-goal", label: "Assign Goal", icon: "target" },
-  { id: "schedule-meeting", label: "Schedule Meeting", icon: "calendarPlus" },
-  { id: "generate-report", label: "Generate Report", icon: "fileBarChart" },
-  { id: "export-dashboard", label: "Export Dashboard", icon: "download" },
+  { id: "assign-goal", label: "Assign Goal", icon: "target", link: "/manager/team/GoalUpdate" },
+  { id: "schedule-meeting", label: "Schedule Meeting", icon: "calendarPlus" , link: "/manager/team/myTeam"},
 ];
 
 // ---------------------------------------------------------------------------
@@ -325,7 +324,7 @@ export const teamMembers: TeamMember[] = [
 // ---------------------------------------------------------------------------
 // Pending approvals
 // ---------------------------------------------------------------------------
-
+  
 export type ApprovalType =
   | "Leave Request"
   | "Expense Claim"

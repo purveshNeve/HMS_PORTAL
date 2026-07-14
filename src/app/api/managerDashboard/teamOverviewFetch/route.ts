@@ -60,7 +60,7 @@ export async function GET() {
         const employees = await User.find(
             {
                 role: "EMPLOYEE",
-                manager: session.user.id,
+                manager: session.user.userId,
             },
             {
                 name: 1,
@@ -68,25 +68,26 @@ export async function GET() {
                 department: 1,
                 designation: 1,
                 profileImage: 1,
+                userId: 1,
             }
         ).lean();
 
         const employeeData = await Promise.all(
             employees.map(async (employee) => {
                 const goal = await Goal.findOne({
-                    employeeId: employee._id,
+                    assignedTo: employee.userId,
                     status: "in_progress",
                 }).lean();
 
                 const currentLeave = await LeaveRequest.findOne({
-                    employeeId: employee._id,
+                    employeeId: employee.userId,
                     status: "APPROVED",
                     startDate: { $lte: today },
                     endDate: { $gte: today },
                 }).lean();
 
                 const approvedLeaves = await LeaveRequest.find({
-                    employeeId: employee._id,
+                    employeeId: employee.userId,
                     status: "APPROVED",
                     startDate: { $lte: monthEnd },
                     endDate: { $gte: monthStart },
@@ -122,7 +123,7 @@ export async function GET() {
                 );
 
                 const currentWFH = await WFHRequests.findOne({
-                    employeeId: employee._id,
+                    employeeId: employee.userId,
                     status: "APPROVED",
                     startDate: { $lte: today },
                     endDate: { $gte: today },
@@ -136,6 +137,8 @@ export async function GET() {
                     status = "Remote";
                 }
 
+                const goalAhead = goal?.progress ?? 0;
+
                 return {
                     id: employee._id.toString(),
                     name: employee.name,
@@ -145,6 +148,7 @@ export async function GET() {
                     attendance,
                     status,
                     currentGoal: goal?.title ?? "No Active Goal",
+                    goalAhead,
                     profileImage: employee.profileImage,
                 };
             })

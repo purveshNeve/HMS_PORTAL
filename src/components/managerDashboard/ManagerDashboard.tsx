@@ -13,11 +13,11 @@ import { RecentActivity } from "./RecentActivity";
 import { UpcomingMeetings } from "./UpcomingMeetings";
 import { BirthdaysCard } from "./BirthdaysCard";
 import { AnniversaryCard } from "./AnniversaryCard";
-import { QuickAccess } from "./QuickAccess";
-import { AIInsights } from "./AIInsights";
-import { ManagerSnapshot } from "./ManagerSnapshot";
-import { Announcements } from "./Announcements";
-import { MiniCalendar } from "./MiniCalendar";
+// import { QuickAccess } from "./QuickAccess";
+// import { AIInsights } from "./AIInsights";
+// import { ManagerSnapshot } from "./ManagerSnapshot";
+// import { Announcements } from "./Announcements";
+// import { MiniCalendar } from "./MiniCalendar";
 
 /**
  * ManagerDashboard
@@ -56,25 +56,14 @@ export function ManagerDashboard() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <AvailabilityCard />
-        <RecentActivity />
+        {/* <RecentActivity /> */}
         <UpcomingMeetings />
+        <DepartmentPieChart />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <BirthdaysCard />
         <AnniversaryCard />
-        <DepartmentPieChart />
-      </div>
-
-      <AIInsights />
-
-      <ManagerSnapshot />
-
-      <QuickAccess />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Announcements />
-        <MiniCalendar />
       </div>
     </div>
   );

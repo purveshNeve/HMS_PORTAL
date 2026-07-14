@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     if (!session?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    if (session.user.role !== "manager") {
+    if (session.user.role !== "MANAGER") {
       return NextResponse.json({ message: "Only managers can schedule meetings" }, { status: 403 });
     }
 

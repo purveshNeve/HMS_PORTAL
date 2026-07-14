@@ -9,6 +9,19 @@ import Meeting from "@/models/Meeting";
 import { any } from "zod";
 import Goal from "@/models/Goal";
 
+function getWeekStart(date: Date) {
+  const day = date.getDay();
+  const diff = (day + 6) % 7; // Monday as first day
+  const start = new Date(date);
+  start.setDate(date.getDate() - diff);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function isDateInRange(date: Date, start: Date, end: Date) {
+  return date.getTime() >= start.getTime() && date.getTime() <= end.getTime();
+}
+
 export async function GET() {
   try {
     const session = await auth();
@@ -78,6 +91,50 @@ export async function GET() {
       const endDate = new Date(wfh.endDate);
       const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       totalWFHDays += days;
+    });
+
+    const weekStart = getWeekStart(currentDate);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const weeklyLeaves = await LeaveRequest.find({
+      employeeId,
+      status: "APPROVED",
+      startDate: { $lte: weekEnd },
+      endDate: { $gte: weekStart },
+    }).lean();
+
+    const weeklyWFH = await WFHRequests.find({
+      employeeId,
+      status: "APPROVED",
+      startDate: { $lte: weekEnd },
+      endDate: { $gte: weekStart },
+    }).lean();
+
+    const weeklyAttendance = Array.from({ length: 7 }, (_, index) => {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + index);
+      day.setHours(0, 0, 0, 0);
+
+      const isAbsent = weeklyLeaves.some((leave) => {
+        const startDate = new Date(leave.startDate);
+        const endDate = new Date(leave.endDate);
+        return isDateInRange(day, startDate, endDate);
+      });
+
+      const isRemote = !isAbsent && weeklyWFH.some((wfh) => {
+        const startDate = new Date(wfh.startDate);
+        const endDate = new Date(wfh.endDate);
+        return isDateInRange(day, startDate, endDate);
+      });
+
+      return {
+        day: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][index],
+        present: isAbsent || isRemote ? 0 : 1,
+        remote: isRemote ? 1 : 0,
+        absent: isAbsent ? 1 : 0,
+      };
     });
 
     // 3. Fetch pending tasks/goals
@@ -166,6 +223,7 @@ export async function GET() {
             progress: goal.progress,
           })),
         },
+        weeklyAttendance,
       },
       { status: 200 }
     );
