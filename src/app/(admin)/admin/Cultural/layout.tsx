@@ -12,7 +12,7 @@ const fraunces = Fraunces({
 });
 
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ["latin"], 
   weight: ["400", "500", "600", "700"],
   variable: "--font-inter",
   display: "swap",
@@ -35,13 +35,11 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
-      <html lang="en">
-        <body
+        <div
           className={`${fraunces.variable} ${inter.variable} ${plexMono.variable} font-sans bg-paper text-ink antialiased`}
         >
           <ToastProvider>{children}</ToastProvider>
-        </body>
-      </html>
+        </div>
     </>
   );
 }
